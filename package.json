@@ -1,0 +1,29 @@
+{
+  "name": "even-roads",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "test:compile": "rm -rf .test-dist && tsc -p tsconfig.test.json && printf '{\"type\":\"commonjs\"}\\n' > .test-dist/package.json",
+    "test:unit": "npm run test:compile && node --test test/unit/*.test.cjs test/stress/*.test.cjs",
+    "test": "npm run test:unit",
+    "perf:analyze": "node scripts/perf/analyze-log.cjs",
+    "perf:baseline": "node scripts/perf/analyze-log.cjs docs/perf/baseline-2026-03-01.log --json docs/perf/baseline-summary.json",
+    "perf:compare": "node scripts/perf/compare-summaries.cjs"
+  },
+  "dependencies": {
+    "@evenrealities/even_hub_sdk": "^0.0.7"
+  },
+  "devDependencies": {
+    "@evenrealities/evenhub-cli": "^0.1.5",
+    "typescript": "^5.6.3",
+    "vite": "^6.4.1"
+  }
+}

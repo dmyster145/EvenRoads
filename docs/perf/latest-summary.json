@@ -1,0 +1,56 @@
+{
+  "generatedAt": "2026-03-01T23:01:01.678Z",
+  "sourceLog": "/Users/dustinharmon/Downloads/PerfLog.txt",
+  "summary": {
+    "startup": {
+      "setupMs": 355,
+      "maxSetupMs": 355,
+      "samples": 1
+    },
+    "bridge": {
+      "windows": 8,
+      "sends": 76,
+      "failed": 0,
+      "coalesced": 0,
+      "droppedLowPri": 0,
+      "droppedRecentInputTick": 0,
+      "weightedAvgSendMs": 134.21315789473684,
+      "weightedAvgQueueMs": 1.956578947368421,
+      "maxSendMs": 298.6,
+      "maxQueueMs": 83.9
+    },
+    "render": {
+      "windows": 8,
+      "samples": 79,
+      "weightedAvgBuildMs": 0.099873417721519,
+      "weightedAvgSetupMs": 0.006962025316455697,
+      "weightedAvgEnqueueMs": 0.02645569620253165,
+      "weightedAvgInputToRenderMs": 0.09620253164556963,
+      "weightedAvgInputToEnqueueMs": 0.3886075949367089,
+      "maxSetupMs": 0.6,
+      "skippedBridgeWrites": 4,
+      "skippedPreviewWrites": 1,
+      "skippedBusyTickWrites": 3,
+      "skippedInputCooldownTickWrites": 0,
+      "skippedStaticTickRenders": 140
+    },
+    "input": {
+      "burstWindows": 7,
+      "events": 31,
+      "mapped": 30,
+      "dropped": 0,
+      "dropRate": 0,
+      "eventP50InputToRenderMs": 0,
+      "eventP95InputToRenderMs": 0.4,
+      "eventP95SetupMs": 0,
+      "eventP95EnqueueMs": 0.1
+    }
+  },
+  "issues": [
+    {
+      "severity": "warn",
+      "code": "bridge_avg_send_high",
+      "message": "Bridge weighted avg send is 134.2ms (>120ms)."
+    }
+  ]
+}

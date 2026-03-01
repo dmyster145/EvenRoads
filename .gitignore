@@ -1,0 +1,23 @@
+# Dependencies
+node_modules/
+
+# Build / cache
+dist/
+.vite/
+.test-dist/
+*.tsbuildinfo
+
+# Env
+.env
+.env.local
+.env.*.local
+
+# IDE / OS
+.idea/
+.vscode/
+.cursor/
+.DS_Store
+*.log
+
+# Test / coverage
+coverage/

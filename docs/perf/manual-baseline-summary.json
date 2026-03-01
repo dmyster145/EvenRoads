@@ -1,0 +1,71 @@
+{
+  "generatedAt": "2026-03-01T22:27:13.545Z",
+  "sourceLog": "/Users/dustinharmon/Downloads/PerfLog.txt",
+  "summary": {
+    "startup": {
+      "setupMs": 4037.2,
+      "maxSetupMs": 4037.2,
+      "samples": 1
+    },
+    "bridge": {
+      "windows": 10,
+      "sends": 80,
+      "failed": 0,
+      "coalesced": 4,
+      "weightedAvgSendMs": 156.01999999999998,
+      "weightedAvgQueueMs": 22.9025,
+      "maxSendMs": 1966.3,
+      "maxQueueMs": 550.3
+    },
+    "render": {
+      "windows": 12,
+      "samples": 257,
+      "weightedAvgBuildMs": 0.08747081712062259,
+      "weightedAvgSetupMs": 16.49626459143969,
+      "weightedAvgEnqueueMs": 0.4572762645914397,
+      "weightedAvgInputToRenderMs": 879.4607003891051,
+      "weightedAvgInputToEnqueueMs": 732.9019455252918,
+      "maxSetupMs": 4038.9,
+      "skippedBridgeWrites": 170,
+      "skippedPreviewWrites": 1
+    },
+    "input": {
+      "burstWindows": 8,
+      "events": 28,
+      "mapped": 26,
+      "dropped": 0,
+      "dropRate": 0,
+      "eventP50InputToRenderMs": 0,
+      "eventP95InputToRenderMs": 0.5,
+      "eventP95SetupMs": 11,
+      "eventP95EnqueueMs": 1.2
+    }
+  },
+  "issues": [
+    {
+      "severity": "warn",
+      "code": "startup_setup_slow",
+      "message": "Startup page setup is 4037.2ms (>1500ms). Expect noticeable first-frame delay on hardware."
+    },
+    {
+      "severity": "warn",
+      "code": "bridge_avg_send_high",
+      "message": "Bridge weighted avg send is 156.0ms (>120ms)."
+    },
+    {
+      "severity": "warn",
+      "code": "bridge_queue_spikes",
+      "message": "Bridge queue delay spikes to 550.3ms (>100ms)."
+    },
+    {
+      "severity": "warn",
+      "code": "setup_spikes_during_input",
+      "message": "Input path setup p95 is 11.0ms (>10ms)."
+    },
+    {
+      "severity": "warn",
+      "code": "input_latency_aggregation_bias",
+      "message": "Render aggregate input->render includes stale tick frames; use per-input event latency as primary tuning metric."
+    }
+  ]
+}
