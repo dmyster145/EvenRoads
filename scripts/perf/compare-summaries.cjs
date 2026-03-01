@@ -49,6 +49,7 @@ function main() {
   const rows = [
     { label: "startup.setupMs", better: "lower" },
     { label: "bridge.weightedAvgSendMs", better: "lower" },
+    { label: "bridge.maxSendMs", better: "lower" },
     { label: "bridge.maxQueueMs", better: "lower" },
     { label: "render.weightedAvgBuildMs", better: "lower" },
     { label: "render.weightedAvgEnqueueMs", better: "lower" },

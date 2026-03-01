@@ -203,7 +203,7 @@ export class RoadsBridge {
       id: containerID,
       name: containerName,
       content,
-      enqueuedAtMs: perfNowMs(),
+      enqueuedAtMs: now,
       priority: nextPriority,
     };
 
@@ -244,8 +244,8 @@ export class RoadsBridge {
   private async runSendLoop(first: QueuedTextUpdate): Promise<void> {
     let next: QueuedTextUpdate | null = first;
     while (next && this.bridge) {
-      const queueDelayMs = perfNowMs() - next.enqueuedAtMs;
       const sendStartedAt = perfNowMs();
+      const queueDelayMs = sendStartedAt - next.enqueuedAtMs;
       this.inFlightText = next.content;
       const ok = await this.bridge.textContainerUpgrade(
         new TextContainerUpgrade({
@@ -258,6 +258,7 @@ export class RoadsBridge {
       this.sendCount += 1;
       this.sendTotalMs += sendMs;
       this.sendMaxMs = Math.max(this.sendMaxMs, sendMs);
+      this.sendMinMs = Math.min(this.sendMinMs, sendMs);
       this.queueDelayTotalMs += queueDelayMs;
       this.queueDelayMaxMs = Math.max(this.queueDelayMaxMs, queueDelayMs);
 

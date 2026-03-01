@@ -76,13 +76,14 @@ function parsePerfLog(text) {
 
     const bridgeSummary = safeRegex(
       line,
-      /\[EvenRoads\]\[Perf\]\[Bridge\] sends=(?<sends>\d+) avgSend=(?<avgSend>[0-9.]+)ms maxSend=(?<maxSend>[0-9.]+)ms avgQueue=(?<avgQueue>[0-9.]+)ms maxQueue=(?<maxQueue>[0-9.]+)ms coalesced=(?<coalesced>\d+) skippedSame=(?<skippedSame>\d+)(?: droppedLowPri=(?<droppedLowPri>\d+))?(?: dropRecentInputTick=(?<dropRecentInputTick>\d+))? failed=(?<failed>\d+)/,
+      /\[EvenRoads\]\[Perf\]\[Bridge\] sends=(?<sends>\d+) avgSend=(?<avgSend>[0-9.]+)ms maxSend=(?<maxSend>[0-9.]+)ms(?: minSend=(?<minSend>[0-9.]+)ms)? avgQueue=(?<avgQueue>[0-9.]+)ms maxQueue=(?<maxQueue>[0-9.]+)ms coalesced=(?<coalesced>\d+) skippedSame=(?<skippedSame>\d+)(?: droppedLowPri=(?<droppedLowPri>\d+))?(?: dropRecentInputTick=(?<dropRecentInputTick>\d+))? failed=(?<failed>\d+)/,
     );
     if (bridgeSummary) {
       bridge.push({
         sends: Number.parseInt(bridgeSummary.sends, 10),
         avgSend: toNum(bridgeSummary.avgSend),
         maxSend: toNum(bridgeSummary.maxSend),
+        minSend: bridgeSummary.minSend != null ? toNum(bridgeSummary.minSend) : null,
         avgQueue: toNum(bridgeSummary.avgQueue),
         maxQueue: toNum(bridgeSummary.maxQueue),
         coalesced: Number.parseInt(bridgeSummary.coalesced, 10),
@@ -185,6 +186,9 @@ function parsePerfLog(text) {
       weightedAvgSendMs: weightedAverage(bridge, "avgSend", "sends"),
       weightedAvgQueueMs: weightedAverage(bridge, "avgQueue", "sends"),
       maxSendMs: bridge.length ? Math.max(...bridge.map((item) => item.maxSend)) : 0,
+      minSendMs: bridge.some((item) => item.minSend != null)
+        ? Math.min(...bridge.filter((item) => item.minSend != null).map((item) => item.minSend))
+        : 0,
       maxQueueMs: bridge.length ? Math.max(...bridge.map((item) => item.maxQueue)) : 0,
     },
     render: {
@@ -237,6 +241,24 @@ function parsePerfLog(text) {
       message: `Bridge weighted avg send is ${summary.bridge.weightedAvgSendMs.toFixed(1)}ms (>120ms).`,
     });
   }
+  if (summary.bridge.maxSendMs > 250) {
+    issues.push({
+      severity: "warn",
+      code: "bridge_max_send_high",
+      message: `Bridge max send spike is ${summary.bridge.maxSendMs.toFixed(1)}ms (>250ms). Likely cold-start or transient SDK stall.`,
+    });
+  }
+  if (
+    summary.bridge.minSendMs > 0 &&
+    summary.bridge.maxSendMs > 0 &&
+    summary.bridge.maxSendMs / summary.bridge.minSendMs > 2.5
+  ) {
+    issues.push({
+      severity: "info",
+      code: "bridge_send_spike_spread",
+      message: `Bridge send spread is ${(summary.bridge.maxSendMs / summary.bridge.minSendMs).toFixed(1)}x (max=${summary.bridge.maxSendMs.toFixed(1)}ms min=${summary.bridge.minSendMs.toFixed(1)}ms). Average is pulled by outlier spikes rather than consistent baseline.`,
+    });
+  }
   if (summary.bridge.maxQueueMs > 100) {
     issues.push({
       severity: "warn",
@@ -270,8 +292,9 @@ function parsePerfLog(text) {
 function printReport(logPath, analysis) {
   const { summary, issues } = analysis;
   console.log(`Analyzed: ${path.resolve(logPath)}`);
+  const minSendLabel = summary.bridge.minSendMs > 0 ? ` min=${summary.bridge.minSendMs.toFixed(1)}ms` : "";
   console.log(
-    `Startup setup: ${summary.startup.setupMs.toFixed(1)}ms | Bridge avg send: ${summary.bridge.weightedAvgSendMs.toFixed(1)}ms | Bridge max queue: ${summary.bridge.maxQueueMs.toFixed(1)}ms`,
+    `Startup setup: ${summary.startup.setupMs.toFixed(1)}ms | Bridge avg send: ${summary.bridge.weightedAvgSendMs.toFixed(1)}ms max=${summary.bridge.maxSendMs.toFixed(1)}ms${minSendLabel} | Bridge max queue: ${summary.bridge.maxQueueMs.toFixed(1)}ms`,
   );
   console.log(
     `Render avg build/setup/enqueue: ${summary.render.weightedAvgBuildMs.toFixed(2)} / ${summary.render.weightedAvgSetupMs.toFixed(2)} / ${summary.render.weightedAvgEnqueueMs.toFixed(2)} ms`,

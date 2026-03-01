@@ -136,6 +136,39 @@ test("recent input suppresses near-term tick update", async () => {
   });
 });
 
+test("transport stats track minSend across sends", async () => {
+  const logs = [];
+  const origLog = console.log;
+  console.log = (...args) => {
+    const msg = args.join(" ");
+    if (msg.includes("[Perf][Bridge]") && msg.includes("sends=")) logs.push(msg);
+  };
+
+  try {
+    await withFakeClock(async (clock) => {
+      const roadsBridge = new RoadsBridge();
+      const fake = createFakeBridge({ delayMs: 1 });
+      attachBridgeInstance(roadsBridge, fake);
+
+      // Send enough to trigger stats logging (BRIDGE_STATS_LOG_MIN_SENDS = 24).
+      for (let i = 0; i < 25; i++) {
+        clock.advance(1);
+        await roadsBridge.updateText(2, "screen", `frame-${i}`);
+      }
+
+      // Force remaining stats flush.
+      clock.advance(5000);
+      await roadsBridge.updateText(2, "screen", "flush");
+    });
+
+    assert.equal(logs.length >= 1, true, "expected at least one bridge stats log line");
+    const firstLog = logs[0];
+    assert.match(firstLog, /minSend=[0-9.]+ms/, "stats should include minSend field");
+  } finally {
+    console.log = origLog;
+  }
+});
+
 test("subscribeEvents wires and unwires callback", () => {
   const roadsBridge = new RoadsBridge();
   const fake = createFakeBridge();

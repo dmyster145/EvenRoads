@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-03-01T23:01:01.678Z",
+  "generatedAt": "2026-03-01T23:09:00.291Z",
   "sourceLog": "/Users/dustinharmon/Downloads/PerfLog.txt",
   "summary": {
     "startup": {
@@ -17,6 +17,7 @@
       "weightedAvgSendMs": 134.21315789473684,
       "weightedAvgQueueMs": 1.956578947368421,
       "maxSendMs": 298.6,
+      "minSendMs": 0,
       "maxQueueMs": 83.9
     },
     "render": {
@@ -51,6 +52,11 @@
       "severity": "warn",
       "code": "bridge_avg_send_high",
       "message": "Bridge weighted avg send is 134.2ms (>120ms)."
+    },
+    {
+      "severity": "warn",
+      "code": "bridge_max_send_high",
+      "message": "Bridge max send spike is 298.6ms (>250ms). Likely cold-start or transient SDK stall."
     }
   ]
 }
