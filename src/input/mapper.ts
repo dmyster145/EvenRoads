@@ -12,7 +12,7 @@ import {
   type Sys_ItemEvent,
 } from "@evenrealities/even_hub_sdk";
 import type { InputAction } from "../game/types";
-import { perfNowMs } from "../perf/log";
+import { isPerfLoggingEnabled, perfLogLazy, perfNowMs } from "../perf/log";
 
 // Keep scroll filtering nearly transparent; we only want to collapse duplicate callbacks
 // generated within the same gesture burst, not slow down intentional repeated swipes.
@@ -24,6 +24,7 @@ const DOUBLE_TAP_DEDUPE_MS = 140;
 const INPUT_PERF_LOG_EVERY_MS = 4000;
 const INPUT_PERF_LOG_MIN_DROPS = 16;
 const INPUT_PERF_LOG_MIN_MAPPED = 80;
+const PERF_ENABLED = isPerfLoggingEnabled();
 
 let lastRawScrollAt = 0;
 let lastAcceptedScrollAt = 0;
@@ -38,6 +39,7 @@ let mappedCount = 0;
 let lastInputPerfLogAtMs = perfNowMs();
 
 function maybeLogInputPerf(force = false): void {
+  if (!PERF_ENABLED) return;
   const now = perfNowMs();
   const droppedCount =
     droppedRawScrollCount + droppedSameDirectionScrollCount + droppedTapCount + droppedDoubleTapCount;
@@ -51,8 +53,9 @@ function maybeLogInputPerf(force = false): void {
     return;
   }
 
-  console.log(
-    `[EvenRoads][Perf][Input] mapped=${mappedCount} dropRawScroll=${droppedRawScrollCount} ` +
+  perfLogLazy(
+    () =>
+      `[EvenRoads][Perf][Input] mapped=${mappedCount} dropRawScroll=${droppedRawScrollCount} ` +
       `dropSameDirScroll=${droppedSameDirectionScrollCount} dropTap=${droppedTapCount} dropDoubleTap=${droppedDoubleTapCount}`,
   );
 
@@ -69,14 +72,14 @@ function shouldDropScroll(direction: "up" | "down"): boolean {
   const rawDt = now - lastRawScrollAt;
   lastRawScrollAt = now;
   if (rawDt < RAW_SCROLL_DEBOUNCE_MS) {
-    droppedRawScrollCount += 1;
+    if (PERF_ENABLED) droppedRawScrollCount += 1;
     maybeLogInputPerf();
     return true;
   }
 
   const acceptedDt = now - lastAcceptedScrollAt;
   if (lastAcceptedScrollDir === direction && acceptedDt < SAME_DIR_SCROLL_DEDUPE_MS) {
-    droppedSameDirectionScrollCount += 1;
+    if (PERF_ENABLED) droppedSameDirectionScrollCount += 1;
     maybeLogInputPerf();
     return true;
   }
@@ -90,7 +93,7 @@ function shouldDropTap(isDouble: boolean): boolean {
   const now = perfNowMs();
   if (isDouble) {
     if (now - lastDoubleTapAt < DOUBLE_TAP_DEDUPE_MS) {
-      droppedDoubleTapCount += 1;
+      if (PERF_ENABLED) droppedDoubleTapCount += 1;
       maybeLogInputPerf();
       return true;
     }
@@ -98,7 +101,7 @@ function shouldDropTap(isDouble: boolean): boolean {
     return false;
   }
   if (now - lastTapAt < TAP_DEDUPE_MS) {
-    droppedTapCount += 1;
+    if (PERF_ENABLED) droppedTapCount += 1;
     maybeLogInputPerf();
     return true;
   }
@@ -108,7 +111,7 @@ function shouldDropTap(isDouble: boolean): boolean {
 
 function recordMapped(action: InputAction | null): InputAction | null {
   if (!action) return null;
-  mappedCount += 1;
+  if (PERF_ENABLED) mappedCount += 1;
   maybeLogInputPerf();
   return action;
 }

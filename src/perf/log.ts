@@ -3,6 +3,29 @@
  *
  * This intentionally tracks only the latest input to keep render-loop logging cheap.
  */
+const PERF_LOG_CONSOLE_ENABLED = false;
+const PERF_LOG_DOM_ENABLED = false;
+
+export type PerfConfig = {
+  consoleEnabled: boolean;
+  domEnabled: boolean;
+  anyEnabled: boolean;
+};
+
+const PERF_CONFIG: PerfConfig = {
+  consoleEnabled: PERF_LOG_CONSOLE_ENABLED,
+  domEnabled: PERF_LOG_DOM_ENABLED,
+  anyEnabled: PERF_LOG_CONSOLE_ENABLED || PERF_LOG_DOM_ENABLED,
+};
+
+if (typeof window !== "undefined") {
+  (
+    window as Window & {
+      __evenRoadsPerfConfig?: PerfConfig;
+    }
+  ).__evenRoadsPerfConfig = PERF_CONFIG;
+}
+
 export type InputPerfTrace = {
   seq: number;
   atMs: number;
@@ -37,6 +60,32 @@ export function perfNowMs(): number {
   return nowMs();
 }
 
+export function getPerfConfig(): PerfConfig {
+  return PERF_CONFIG;
+}
+
+export function isPerfLoggingEnabled(): boolean {
+  return PERF_CONFIG.anyEnabled;
+}
+
+export function isPerfConsoleLoggingEnabled(): boolean {
+  return PERF_CONFIG.consoleEnabled;
+}
+
+export function isPerfDomConsoleEnabled(): boolean {
+  return PERF_CONFIG.domEnabled;
+}
+
+export function perfLog(msg: string): void {
+  if (!PERF_LOG_CONSOLE_ENABLED) return;
+  console.log(msg);
+}
+
+export function perfLogLazy(msgFactory: () => string): void {
+  if (!PERF_LOG_CONSOLE_ENABLED) return;
+  perfLog(msgFactory());
+}
+
 /**
  * Test hook for deterministic timing. Pass null to restore default behavior.
  */
@@ -50,4 +99,10 @@ export function setPerfNowProvider(provider: PerfNowProvider | null): void {
 export function resetPerfLogState(): void {
   inputSeq = 0;
   lastInputTrace = { seq: 0, atMs: 0, name: "-" };
+}
+
+declare global {
+  interface Window {
+    __evenRoadsPerfConfig?: PerfConfig;
+  }
 }

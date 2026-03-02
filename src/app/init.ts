@@ -13,7 +13,14 @@ import {
 import { advanceTick, applyInput, createInitialState } from "../game/engine";
 import type { GameState, InputAction } from "../game/types";
 import { mapEvenHubEventToInput } from "../input/mapper";
-import { getLastInputTrace, perfNowMs, recordInput } from "../perf/log";
+import {
+  getLastInputTrace,
+  isPerfLoggingEnabled,
+  perfLog,
+  perfLogLazy,
+  perfNowMs,
+  recordInput,
+} from "../perf/log";
 import { renderBrowserStatus, renderTextBoard } from "../render/text-board";
 
 type RenderReason = "startup" | "input" | "tick";
@@ -24,6 +31,7 @@ const RENDER_STATS_LOG_EVERY_MS = 4000;
 const RENDER_STATS_LOG_MIN_SAMPLES = 24;
 const PAGE_SETUP_RETRY_MS = 1500;
 const TICK_AFTER_INPUT_BRIDGE_COOLDOWN_MS = 95;
+const NO_INPUT_TRACE = { seq: 0, atMs: 0, name: "-" };
 
 function reasonToMask(reason: RenderReason): number {
   if (reason === "startup") return RENDER_REASON_STARTUP;
@@ -39,6 +47,7 @@ function maskToPrimaryReason(mask: number): RenderReason {
 }
 
 export async function initApp(): Promise<void> {
+  const perfEnabled = isPerfLoggingEnabled();
   const boardRoot = document.getElementById("app");
   const statusRoot = document.getElementById("status");
   const bridge = new RoadsBridge();
@@ -86,6 +95,7 @@ export async function initApp(): Promise<void> {
   let lastRenderStatsLogAtMs = perfNowMs();
 
   function maybeLogRenderStats(force = false): void {
+    if (!perfEnabled) return;
     const now = perfNowMs();
     const shouldLogByTime = now - lastRenderStatsLogAtMs >= RENDER_STATS_LOG_EVERY_MS;
     const shouldLogByCount = renderSampleCount >= RENDER_STATS_LOG_MIN_SAMPLES;
@@ -106,7 +116,7 @@ export async function initApp(): Promise<void> {
     const avgEnqueue = renderSampleCount > 0 ? enqueueTotalMs / renderSampleCount : 0;
     const avgInputToRender = inputToRenderSamples > 0 ? inputToRenderTotalMs / inputToRenderSamples : -1;
     const avgInputToEnqueue = inputToEnqueueSamples > 0 ? inputToEnqueueTotalMs / inputToEnqueueSamples : -1;
-    console.log(
+    perfLog(
       `[EvenRoads][Perf][Render] samples=${renderSampleCount} avgBuild=${avgBuild.toFixed(2)}ms maxBuild=${buildMaxMs.toFixed(2)}ms ` +
         `avgPreview=${avgPreview.toFixed(2)}ms maxPreview=${previewMaxMs.toFixed(2)}ms ` +
         `avgSetup=${avgSetup.toFixed(2)}ms maxSetup=${setupMaxMs.toFixed(2)}ms ` +
@@ -176,7 +186,9 @@ export async function initApp(): Promise<void> {
 
       isPageInitialized = true;
       const setupMs = perfNowMs() - setupStartedAt;
-      console.log(`[EvenRoads][Perf][Setup] ready=${setupMs.toFixed(1)}ms`);
+      if (perfEnabled) {
+        perfLogLazy(() => `[EvenRoads][Perf][Setup] ready=${setupMs.toFixed(1)}ms`);
+      }
       console.log("[EvenRoads] Text page active");
       // Kick an immediate render so the device gets the freshest state after delayed setup.
       scheduleRender("startup");
@@ -215,9 +227,9 @@ export async function initApp(): Promise<void> {
             skippedPreviewWrites += 1;
           }
 
-          const inputTrace = getLastInputTrace();
-          const fromInputMs = inputTrace.atMs > 0 ? renderStartedAt - inputTrace.atMs : -1;
-          const trackInputLatency = primaryReason === "input";
+          const inputTrace = perfEnabled ? getLastInputTrace() : NO_INPUT_TRACE;
+          const fromInputMs = perfEnabled && inputTrace.atMs > 0 ? renderStartedAt - inputTrace.atMs : -1;
+          const trackInputLatency = perfEnabled && primaryReason === "input";
           if (trackInputLatency && fromInputMs >= 0) {
             inputToRenderSamples += 1;
             inputToRenderTotalMs += fromInputMs;
@@ -230,15 +242,17 @@ export async function initApp(): Promise<void> {
           }
           const setupMs = perfNowMs() - setupStartedAt;
           if (!isPageInitialized) {
-            renderSampleCount += 1;
-            buildTotalMs += buildMs;
-            buildMaxMs = Math.max(buildMaxMs, buildMs);
-            previewTotalMs += previewMs;
-            previewMaxMs = Math.max(previewMaxMs, previewMs);
-            setupTotalMs += setupMs;
-            setupMaxMs = Math.max(setupMaxMs, setupMs);
-            skippedBridgeWrites += 1;
-            maybeLogRenderStats();
+            if (perfEnabled) {
+              renderSampleCount += 1;
+              buildTotalMs += buildMs;
+              buildMaxMs = Math.max(buildMaxMs, buildMs);
+              previewTotalMs += previewMs;
+              previewMaxMs = Math.max(previewMaxMs, previewMs);
+              setupTotalMs += setupMs;
+              setupMaxMs = Math.max(setupMaxMs, setupMs);
+              skippedBridgeWrites += 1;
+              maybeLogRenderStats();
+            }
             completedRenderVersion = targetVersion;
             continue;
           }
@@ -288,24 +302,27 @@ export async function initApp(): Promise<void> {
             skippedBridgeWrites += 1;
           }
 
-          renderSampleCount += 1;
-          buildTotalMs += buildMs;
-          buildMaxMs = Math.max(buildMaxMs, buildMs);
-          previewTotalMs += previewMs;
-          previewMaxMs = Math.max(previewMaxMs, previewMs);
-          setupTotalMs += setupMs;
-          setupMaxMs = Math.max(setupMaxMs, setupMs);
-          enqueueTotalMs += enqueueMs;
-          enqueueMaxMs = Math.max(enqueueMaxMs, enqueueMs);
+          if (perfEnabled) {
+            renderSampleCount += 1;
+            buildTotalMs += buildMs;
+            buildMaxMs = Math.max(buildMaxMs, buildMs);
+            previewTotalMs += previewMs;
+            previewMaxMs = Math.max(previewMaxMs, previewMs);
+            setupTotalMs += setupMs;
+            setupMaxMs = Math.max(setupMaxMs, setupMs);
+            enqueueTotalMs += enqueueMs;
+            enqueueMaxMs = Math.max(enqueueMaxMs, enqueueMs);
 
-          if (primaryReason !== "tick") {
-            console.log(
-              `[EvenRoads][Perf][${primaryReason}] v=${targetVersion} input=${inputTrace.name}#${inputTrace.seq} ` +
-                `input->render=${fromInputMs.toFixed(1)}ms build=${buildMs.toFixed(2)}ms preview=${previewMs.toFixed(2)}ms ` +
-                `setup=${setupMs.toFixed(2)}ms enqueue=${enqueueMs.toFixed(2)}ms`,
-            );
+            if (primaryReason !== "tick") {
+              perfLogLazy(
+                () =>
+                  `[EvenRoads][Perf][${primaryReason}] v=${targetVersion} input=${inputTrace.name}#${inputTrace.seq} ` +
+                  `input->render=${fromInputMs.toFixed(1)}ms build=${buildMs.toFixed(2)}ms preview=${previewMs.toFixed(2)}ms ` +
+                  `setup=${setupMs.toFixed(2)}ms enqueue=${enqueueMs.toFixed(2)}ms`,
+              );
+            }
+            maybeLogRenderStats();
           }
-          maybeLogRenderStats();
         } catch (err) {
           console.error("[EvenRoads] render iteration failed", err);
         }

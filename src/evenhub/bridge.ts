@@ -15,7 +15,7 @@ import {
   type EvenAppBridge,
   type EvenHubEvent,
 } from "@evenrealities/even_hub_sdk";
-import { perfNowMs } from "../perf/log";
+import { isPerfLoggingEnabled, perfLog, perfLogLazy, perfNowMs } from "../perf/log";
 
 export type EvenHubEventHandler = (event: EvenHubEvent) => void;
 export type TextUpdatePriority = "tick" | "default" | "input";
@@ -42,6 +42,7 @@ function toPriorityWeight(priority: TextUpdatePriority): number {
 }
 
 export class RoadsBridge {
+  private readonly perfEnabled = isPerfLoggingEnabled();
   private bridge: EvenAppBridge | null = null;
   private unsubscribeEvents: (() => void) | null = null;
   private isSendingText = false;
@@ -64,6 +65,7 @@ export class RoadsBridge {
   private lastStatsLogAtMs = perfNowMs();
 
   private maybeLogTransportStats(force = false): void {
+    if (!this.perfEnabled) return;
     const now = perfNowMs();
     const shouldLogByTime = now - this.lastStatsLogAtMs >= BRIDGE_STATS_LOG_EVERY_MS;
     const shouldLogByCount = this.sendCount >= BRIDGE_STATS_LOG_MIN_SENDS;
@@ -84,8 +86,9 @@ export class RoadsBridge {
     const avgSendMs = this.sendCount > 0 ? this.sendTotalMs / this.sendCount : 0;
     const avgQueueMs = this.sendCount > 0 ? this.queueDelayTotalMs / this.sendCount : 0;
     const minSendMs = this.sendMinMs === Infinity ? 0 : this.sendMinMs;
-    console.log(
-      `[EvenRoads][Perf][Bridge] sends=${this.sendCount} avgSend=${avgSendMs.toFixed(1)}ms maxSend=${this.sendMaxMs.toFixed(1)}ms minSend=${minSendMs.toFixed(1)}ms ` +
+    perfLogLazy(
+      () =>
+        `[EvenRoads][Perf][Bridge] sends=${this.sendCount} avgSend=${avgSendMs.toFixed(1)}ms maxSend=${this.sendMaxMs.toFixed(1)}ms minSend=${minSendMs.toFixed(1)}ms ` +
         `avgQueue=${avgQueueMs.toFixed(1)}ms maxQueue=${this.queueDelayMaxMs.toFixed(1)}ms ` +
         `coalesced=${this.coalescedCount} skippedSame=${this.unchangedSkipCount} droppedLowPri=${this.droppedLowerPriorityCount} ` +
         `dropRecentInputTick=${this.droppedRecentInputTickCount} failed=${this.failedSendCount}`,
@@ -127,8 +130,8 @@ export class RoadsBridge {
       const setupStartedAt = perfNowMs();
       const result = await this.bridge.createStartUpPageContainer(page);
       const setupMs = perfNowMs() - setupStartedAt;
-      if (result === 0) {
-        console.log(`[EvenRoads][Perf][Bridge] setupPage=${setupMs.toFixed(1)}ms`);
+      if (result === 0 && this.perfEnabled) {
+        perfLogLazy(() => `[EvenRoads][Perf][Bridge] setupPage=${setupMs.toFixed(1)}ms`);
       }
       if (result !== 0) {
         console.warn(`[EvenRoads][Bridge] setupPage returned non-zero result=${result}`);
@@ -153,7 +156,7 @@ export class RoadsBridge {
   ): Promise<boolean> {
     if (!this.bridge) return false;
     if (content === this.lastSentText && !this.queuedText && !this.isSendingText) {
-      this.unchangedSkipCount += 1;
+      if (this.perfEnabled) this.unchangedSkipCount += 1;
       this.maybeLogTransportStats();
       return true;
     }
@@ -163,7 +166,7 @@ export class RoadsBridge {
     if (this.isSendingText && content === this.inFlightText) {
       // The latest state matches what is already in flight; drop any stale queued payload.
       this.queuedText = null;
-      this.unchangedSkipCount += 1;
+      if (this.perfEnabled) this.unchangedSkipCount += 1;
       this.maybeLogTransportStats();
       return true;
     }
@@ -177,26 +180,26 @@ export class RoadsBridge {
       now - this.lastInputEnqueueAtMs < INPUT_GUARD_TICK_DROP_MS
     ) {
       // Protect fresh input responsiveness by suppressing near-term tick churn.
-      this.droppedRecentInputTickCount += 1;
+      if (this.perfEnabled) this.droppedRecentInputTickCount += 1;
       this.maybeLogTransportStats();
       return true;
     }
 
     if (this.queuedText) {
       if (this.queuedText.content === content) {
-        this.unchangedSkipCount += 1;
+        if (this.perfEnabled) this.unchangedSkipCount += 1;
         this.maybeLogTransportStats();
         return true;
       }
 
       if (this.queuedText.priority > nextPriority) {
         // Keep higher-priority pending updates (typically input) from being displaced by tick churn.
-        this.droppedLowerPriorityCount += 1;
+        if (this.perfEnabled) this.droppedLowerPriorityCount += 1;
         this.maybeLogTransportStats();
         return true;
       }
 
-      this.coalescedCount += 1;
+      if (this.perfEnabled) this.coalescedCount += 1;
     }
 
     this.queuedText = {
@@ -211,7 +214,7 @@ export class RoadsBridge {
       await this.ensureSenderTask();
       return true;
     } catch (err) {
-      this.failedSendCount += 1;
+      if (this.perfEnabled) this.failedSendCount += 1;
       this.maybeLogTransportStats(true);
       console.error("[EvenRoads][Bridge] text update failed", err);
       return false;
@@ -244,8 +247,8 @@ export class RoadsBridge {
   private async runSendLoop(first: QueuedTextUpdate): Promise<void> {
     let next: QueuedTextUpdate | null = first;
     while (next && this.bridge) {
-      const sendStartedAt = perfNowMs();
-      const queueDelayMs = sendStartedAt - next.enqueuedAtMs;
+      const sendStartedAt = this.perfEnabled ? perfNowMs() : 0;
+      const queueDelayMs = this.perfEnabled ? sendStartedAt - next.enqueuedAtMs : 0;
       this.inFlightText = next.content;
       const ok = await this.bridge.textContainerUpgrade(
         new TextContainerUpgrade({
@@ -254,17 +257,19 @@ export class RoadsBridge {
           content: next.content,
         }),
       );
-      const sendMs = perfNowMs() - sendStartedAt;
-      this.sendCount += 1;
-      this.sendTotalMs += sendMs;
-      this.sendMaxMs = Math.max(this.sendMaxMs, sendMs);
-      this.sendMinMs = Math.min(this.sendMinMs, sendMs);
-      this.queueDelayTotalMs += queueDelayMs;
-      this.queueDelayMaxMs = Math.max(this.queueDelayMaxMs, queueDelayMs);
+      const sendMs = this.perfEnabled ? perfNowMs() - sendStartedAt : 0;
+      if (this.perfEnabled) {
+        this.sendCount += 1;
+        this.sendTotalMs += sendMs;
+        this.sendMaxMs = Math.max(this.sendMaxMs, sendMs);
+        this.sendMinMs = Math.min(this.sendMinMs, sendMs);
+        this.queueDelayTotalMs += queueDelayMs;
+        this.queueDelayMaxMs = Math.max(this.queueDelayMaxMs, queueDelayMs);
+      }
 
       if (ok) {
         this.lastSentText = next.content;
-      } else {
+      } else if (this.perfEnabled) {
         this.failedSendCount += 1;
       }
       this.maybeLogTransportStats();

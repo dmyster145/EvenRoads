@@ -4,6 +4,8 @@
  * This mirrors device/runtime logs into an on-page panel so we can diagnose
  * bridge behavior while testing on glasses where devtools are limited.
  */
+import { isPerfDomConsoleEnabled } from "../perf/log";
+
 type ConsoleMethod = "log" | "info" | "warn" | "error" | "debug";
 
 const DOM_MAX_LINES = 1200;
@@ -206,6 +208,11 @@ export function initDebugConsole(): void {
   initialized = true;
   const panel = getPanel();
   if (!panel) return;
+  if (!isPerfDomConsoleEnabled()) {
+    panel.style.display = "none";
+    panel.setAttribute("data-collapsed", "true");
+    return;
+  }
 
   panel.style.display = "flex";
   panel.setAttribute("data-collapsed", "false");

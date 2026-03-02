@@ -1,8 +1,11 @@
 import { initApp } from "./app/init";
 import { initDebugConsole } from "./debug/console";
+import { isPerfDomConsoleEnabled } from "./perf/log";
 
 // Capture startup logs before any async bridge/setup work begins.
-initDebugConsole();
+if (isPerfDomConsoleEnabled()) {
+  initDebugConsole();
+}
 
 initApp().catch((err) => {
   console.error("[EvenRoads] initialization failed", err);
