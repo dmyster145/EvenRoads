@@ -6,9 +6,8 @@ EvenRoads is designed around low-latency text container updates with determinist
 
 ## Demo
 
-**[Watch demo video](assets/Demo_Video.mp4)** — click to view (GitHub doesn’t embed repo-hosted video inline).
+**[Watch demo video](assets/Demo_Video.mp4)** 
 
-To get the video to play inline on this README: create a new issue in this repo, drag-and-drop `assets/Demo_Video.mp4` into the issue body, then copy the generated `https://github.com/user-attachments/assets/...` URL and replace the link above with that URL.
 
 ## Screenshots
 
