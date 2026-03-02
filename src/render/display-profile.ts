@@ -42,6 +42,15 @@ function profileFromLocalStorage(storage: Storage | undefined): RenderGlyphProfi
   }
 }
 
+function getLocalStorageSafely(win: Window | undefined): Storage | undefined {
+  if (!win) return undefined;
+  try {
+    return win.localStorage;
+  } catch {
+    return undefined;
+  }
+}
+
 function looksLikeDesktopSimulator(userAgent: string): boolean {
   if (!userAgent) return false;
   const ua = userAgent.toLowerCase();
@@ -82,7 +91,7 @@ export function resolveRenderGlyphProfile(
   const fromSearch = profileFromSearch(win?.location?.search ?? "");
   if (fromSearch) return fromSearch;
 
-  const fromStorage = profileFromLocalStorage(win?.localStorage);
+  const fromStorage = profileFromLocalStorage(getLocalStorageSafely(win));
   if (fromStorage) return fromStorage;
 
   if (isLocalSimulatorHost(win?.location?.hostname ?? "")) {

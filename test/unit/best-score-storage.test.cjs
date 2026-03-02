@@ -40,3 +40,23 @@ test("persistBestScore stores normalized integer value", () => {
   persistBestScore(19.8, storage);
   assert.equal(storage.getItem("evenroads.bestScore"), "19");
 });
+
+test("loadPersistedBestScore returns 0 when storage read throws", () => {
+  const storage = {
+    getItem() {
+      throw new Error("read blocked");
+    },
+  };
+  assert.equal(loadPersistedBestScore(storage), 0);
+});
+
+test("persistBestScore does not throw when storage write fails", () => {
+  const storage = {
+    setItem() {
+      throw new Error("quota exceeded");
+    },
+  };
+  assert.doesNotThrow(() => {
+    persistBestScore(8, storage);
+  });
+});

@@ -9,8 +9,8 @@ import {
   TextContainerProperty,
 } from "@evenrealities/even_hub_sdk";
 
-export const CONTAINER_ID_EVENT = 1;
-export const CONTAINER_NAME_EVENT = "evt";
+const CONTAINER_ID_EVENT = 1;
+const CONTAINER_NAME_EVENT = "evt";
 export const CONTAINER_ID_TEXT = 2;
 export const CONTAINER_NAME_TEXT = "screen";
 

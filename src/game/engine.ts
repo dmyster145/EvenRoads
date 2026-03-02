@@ -12,7 +12,7 @@ const MIN_TICK_MS = 90;
 const BASE_TICK_MS = 170;
 const NO_QUEUED_HOP = -1;
 const HOP_GRACE_TICKS = 3;
-const START_MESSAGE = "Scroll Up/Down: right/left. Tap: hop.";
+const START_MESSAGE = "Scroll Up/Down: left/right. Tap: hop.";
 
 function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
@@ -276,7 +276,7 @@ function withMessage(state: GameState, message: string): GameState {
 }
 
 function isCrossedMessage(message: string): boolean {
-  return /^Crossed! Level \d+\.?$/.test(message);
+  return /^Crossed! Level \d+\.$/.test(message);
 }
 
 function clearCrossedMessageIfLeftHome(previous: GameState, next: GameState): GameState {
@@ -382,7 +382,7 @@ function handleGoalReached(state: GameState): GameState {
     level,
     tickIntervalMs: nextTickIntervalMs(level),
     bestScore: Math.max(state.bestScore, score),
-    message: `Crossed! Level ${level}`,
+    message: `Crossed! Level ${level}fd`,
     lanes: createLanes(state.width, level, state.seed + score * 17),
     solidCells,
     bridgeCells,
@@ -410,7 +410,7 @@ export function applyInput(state: GameState, action: InputAction, atMs: number):
       bestScore: Math.max(state.bestScore, state.score),
       lastInputAtMs: atMs,
       lastInputName: action,
-      message: "New game.",
+      message: "New run.",
     };
   }
 
@@ -482,7 +482,7 @@ export function advanceTick(state: GameState): GameState {
 
 export function laneGlyph(lane: Lane, x: number): string {
   if (lane.type === "goal") return x % 2 === 0 ? "▩" : "□";
-  if (lane.type === "safe" || lane.type === "start") return "□";
+  if (lane.type === "start") return "□";
   if (!lane.cells[x]) return "▒";
   return "◈";
 }

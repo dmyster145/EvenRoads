@@ -15,7 +15,7 @@ import {
   type EvenAppBridge,
   type EvenHubEvent,
 } from "@evenrealities/even_hub_sdk";
-import { isPerfLoggingEnabled, perfLog, perfLogLazy, perfNowMs } from "../perf/log";
+import { isPerfLoggingEnabled, perfLogLazy, perfNowMs } from "../perf/log";
 
 export type EvenHubEventHandler = (event: EvenHubEvent) => void;
 export type TextUpdatePriority = "tick" | "default" | "input";

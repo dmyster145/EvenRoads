@@ -3,7 +3,7 @@
  *
  * Shared types keep renderer/input/engine modules loosely coupled and easier to evolve.
  */
-export type LaneType = "goal" | "road" | "safe" | "start";
+export type LaneType = "goal" | "road" | "start";
 
 export type InputAction = "move_left" | "move_right" | "move_up" | "toggle_pause" | "restart";
 

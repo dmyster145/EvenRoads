@@ -60,16 +60,8 @@ export function perfNowMs(): number {
   return nowMs();
 }
 
-export function getPerfConfig(): PerfConfig {
-  return PERF_CONFIG;
-}
-
 export function isPerfLoggingEnabled(): boolean {
   return PERF_CONFIG.anyEnabled;
-}
-
-export function isPerfConsoleLoggingEnabled(): boolean {
-  return PERF_CONFIG.consoleEnabled;
 }
 
 export function isPerfDomConsoleEnabled(): boolean {

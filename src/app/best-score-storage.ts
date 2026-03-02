@@ -16,12 +16,21 @@ function normalizeScore(value: number): number {
 
 export function loadPersistedBestScore(storage: Storage | null = getBrowserStorage()): number {
   if (!storage) return 0;
-  const raw = storage.getItem(BEST_SCORE_STORAGE_KEY);
+  let raw: string | null;
+  try {
+    raw = storage.getItem(BEST_SCORE_STORAGE_KEY);
+  } catch {
+    return 0;
+  }
   if (!raw) return 0;
   return normalizeScore(Number(raw));
 }
 
 export function persistBestScore(bestScore: number, storage: Storage | null = getBrowserStorage()): void {
   if (!storage) return;
-  storage.setItem(BEST_SCORE_STORAGE_KEY, String(normalizeScore(bestScore)));
+  try {
+    storage.setItem(BEST_SCORE_STORAGE_KEY, String(normalizeScore(bestScore)));
+  } catch {
+    // Ignore storage write failures so gameplay can continue in restricted runtimes.
+  }
 }

@@ -52,6 +52,15 @@ test("raw scroll debounce drops duplicate callbacks inside 1ms", () => {
   });
 });
 
+test("scroll dedupe accepts event exactly at 1ms threshold", () => {
+  withFakeClock((clock) => {
+    const evt = textEvent(OsEventTypeList.SCROLL_TOP_EVENT);
+    assert.equal(mapEvenHubEventToInput(evt), "move_left");
+    clock.advance(1);
+    assert.equal(mapEvenHubEventToInput(evt), "move_left");
+  });
+});
+
 test("tap maps to move_up and double tap maps to restart", () => {
   withFakeClock((clock) => {
     const tap = textEvent(OsEventTypeList.CLICK_EVENT);
@@ -76,5 +85,21 @@ test("fallback null eventType with list selection maps to tap/up", () => {
       },
     };
     assert.equal(mapEvenHubEventToInput(listTap), "move_up");
+  });
+});
+
+test("tap and double-tap dedupe accept events at exact thresholds", () => {
+  withFakeClock((clock) => {
+    const tap = textEvent(OsEventTypeList.CLICK_EVENT);
+    const doubleTap = textEvent(OsEventTypeList.DOUBLE_CLICK_EVENT);
+
+    assert.equal(mapEvenHubEventToInput(tap), "move_up");
+    clock.advance(1);
+    assert.equal(mapEvenHubEventToInput(tap), "move_up");
+
+    clock.advance(100);
+    assert.equal(mapEvenHubEventToInput(doubleTap), "restart");
+    clock.advance(20);
+    assert.equal(mapEvenHubEventToInput(doubleTap), "restart");
   });
 });

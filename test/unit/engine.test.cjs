@@ -465,6 +465,50 @@ test("buffered hop executes after lane update when target clears", () => {
   assert.equal(next.queuedHopUntilTick, -1);
 });
 
+test("buffered hop expires after one tick and does not execute later", () => {
+  const state = createInitialState(43);
+  const targetRow = state.playerY - 1;
+  const targetX = state.playerX;
+
+  const lanes = state.lanes.slice();
+  lanes[targetRow] = {
+    ...lanes[targetRow],
+    type: "road",
+    direction: 1,
+    speedTicks: 99,
+    cells: new Array(state.width).fill(false),
+  };
+  lanes[targetRow].cells[targetX] = true;
+
+  const solidCells = state.solidCells.map((line) => line.slice());
+  solidCells[targetRow][targetX] = false;
+  const bridgeCells = state.bridgeCells.map((line) => line.slice());
+  bridgeCells[targetRow][targetX] = false;
+
+  const queued = applyInput({ ...state, lanes, solidCells, bridgeCells }, "move_up", 60);
+  assert.equal(queued.playerY, state.playerY);
+  assert.equal(queued.queuedHopUntilTick, queued.tickCount + 1);
+
+  const solidBlocked = queued.solidCells.map((line) => line.slice());
+  solidBlocked[targetRow][targetX] = true;
+  const expired = advanceTick({ ...queued, solidCells: solidBlocked });
+  assert.equal(expired.playerY, state.playerY);
+  assert.equal(expired.queuedHopUntilTick, -1);
+
+  const clearedLanes = expired.lanes.slice();
+  clearedLanes[targetRow] = {
+    ...clearedLanes[targetRow],
+    type: "road",
+    cells: new Array(expired.width).fill(false),
+  };
+  const clearedSolid = expired.solidCells.map((line) => line.slice());
+  clearedSolid[targetRow][targetX] = false;
+
+  const afterExpiry = advanceTick({ ...expired, lanes: clearedLanes, solidCells: clearedSolid });
+  assert.equal(afterExpiry.playerY, state.playerY);
+  assert.equal(afterExpiry.queuedHopUntilTick, -1);
+});
+
 test("hop grace allows narrow-timing survival through grace window", () => {
   const state = createInitialState(21);
   const targetRow = state.playerY - 1;

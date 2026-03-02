@@ -268,3 +268,19 @@ test("shutdown swallows sdk shutdown errors", async () => {
     await roadsBridge.shutdown();
   });
 });
+
+test("shutdown during in-flight send drops queued update without rejection", async () => {
+  const roadsBridge = new RoadsBridge();
+  const fake = createFakeBridge({ delayMs: 10 });
+  attachBridgeInstance(roadsBridge, fake);
+
+  const p1 = roadsBridge.updateText(2, "screen", "frame-a");
+  const p2 = roadsBridge.updateText(2, "screen", "frame-b");
+  const shutdown = roadsBridge.shutdown();
+
+  await assert.doesNotReject(async () => {
+    await Promise.all([p1, p2, shutdown]);
+  });
+
+  assert.deepEqual(fake.sent, ["frame-a"]);
+});
