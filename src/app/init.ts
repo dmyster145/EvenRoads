@@ -5,6 +5,7 @@
  * transport bottlenecks observable in one place.
  */
 import { RoadsBridge, type TextUpdatePriority } from "../evenhub/bridge";
+import { loadPersistedBestScore, persistBestScore } from "./best-score-storage";
 import {
   CONTAINER_ID_TEXT,
   CONTAINER_NAME_TEXT,
@@ -54,7 +55,12 @@ export async function initApp(): Promise<void> {
 
   await bridge.init();
 
+  const persistedBestScore = loadPersistedBestScore();
   let state: GameState = createInitialState();
+  if (persistedBestScore > state.bestScore) {
+    state = { ...state, bestScore: persistedBestScore };
+  }
+  let lastPersistedBestScore = state.bestScore;
   let tickTimer: ReturnType<typeof setTimeout> | null = null;
   let destroyed = false;
 
@@ -93,6 +99,12 @@ export async function initApp(): Promise<void> {
   let inputToEnqueueMaxMs = 0;
   let lastInputAppliedAtMs = 0;
   let lastRenderStatsLogAtMs = perfNowMs();
+
+  function syncBestScorePersistence(nextState: GameState): void {
+    if (nextState.bestScore <= lastPersistedBestScore) return;
+    persistBestScore(nextState.bestScore);
+    lastPersistedBestScore = nextState.bestScore;
+  }
 
   function maybeLogRenderStats(force = false): void {
     if (!perfEnabled) return;
@@ -346,6 +358,7 @@ export async function initApp(): Promise<void> {
     const input = recordInput(action);
     lastInputAppliedAtMs = input.atMs;
     state = applyInput(state, action, input.atMs);
+    syncBestScorePersistence(state);
     scheduleRender("input");
 
     const runStateChanged = prevRunState !== state.runState;
@@ -360,16 +373,17 @@ export async function initApp(): Promise<void> {
       clearTimeout(tickTimer);
       tickTimer = null;
     }
-    if (destroyed || state.runState !== "running") return;
+    if (destroyed || state.runState !== "alive") return;
 
     // Use setTimeout instead of setInterval so long frames do not queue multiple stale ticks.
     tickTimer = setTimeout(() => {
       if (destroyed) return;
-      if (state.runState !== "running") return;
+      if (state.runState !== "alive") return;
 
       const beforeTickState = state;
       const nextTickState = advanceTick(beforeTickState);
       state = nextTickState;
+      syncBestScorePersistence(state);
 
       let didVisualChange = beforeTickState.runState !== nextTickState.runState;
       if (!didVisualChange) {

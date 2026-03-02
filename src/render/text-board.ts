@@ -6,21 +6,20 @@
 import { laneGlyph } from "../game/engine";
 import type { GameState, Lane } from "../game/types";
 
-// Browser status panel is narrower than device text, so clamp long diagnostic lines
-// to keep local debugging readable without horizontal scrolling noise.
-const STATUS_MAX_LINE = 46;
 const laneRowCache = new WeakMap<Lane, string>();
-
-function clampLine(text: string): string {
-  return text.length > STATUS_MAX_LINE ? text.slice(0, STATUS_MAX_LINE) : text;
-}
 
 function pad2(value: number): string {
   return value.toString().padStart(2, "0");
 }
 
+function renderScoreboardLine(state: GameState): string {
+  return `Score: ${pad2(state.score)}  Best: ${pad2(state.bestScore)}  Level: ${pad2(state.level)}  State: ${state.runState.toUpperCase()}`;
+}
+
 export function renderTextBoard(state: GameState): string {
-  const lines: string[] = new Array<string>(state.height);
+  const lines: string[] = new Array<string>(state.height + 1);
+  lines[0] = renderScoreboardLine(state);
+
   for (let y = 0; y < state.height; y++) {
     const lane = state.lanes[y];
     let row = laneRowCache.get(lane);
@@ -33,25 +32,27 @@ export function renderTextBoard(state: GameState): string {
       laneRowCache.set(lane, row);
     }
 
+    const solidRow = state.solidCells[y];
+    if (solidRow && solidRow.some((isSolid) => isSolid)) {
+      const chars = row.split("");
+      for (let x = 0; x < state.width; x++) {
+        if (solidRow[x]) {
+          chars[x] = "■";
+        }
+      }
+      row = chars.join("");
+    }
+
     if (state.playerY === y) {
-      const playerGlyph = state.runState === "game_over" ? "X" : "●";
+      const playerGlyph = state.runState === "dead!" ? "X" : "●";
       row = `${row.slice(0, state.playerX)}${playerGlyph}${row.slice(state.playerX + 1)}`;
     }
 
-    lines[y] = row;
+    lines[y + 1] = row;
   }
   return lines.join("\n");
 }
 
 export function renderBrowserStatus(state: GameState): string {
-  const lines: string[] = [];
-  lines.push("EvenRoads V1");
-  lines.push(`State: ${state.runState.toUpperCase()}`);
-  lines.push(`Score: ${pad2(state.score)}  Best: ${pad2(state.bestScore)}  Level: ${pad2(state.level)}`);
-  lines.push(`Tick: ${state.tickIntervalMs}ms  TickCount: ${state.tickCount}`);
-  lines.push(`Last Input: ${state.lastInputName}`);
-  lines.push(`Message: ${state.message}`);
-  lines.push("Controls: ScrollUp=LEFT, ScrollDown=RIGHT, Tap=UP, DoubleTap=PAUSE");
-  lines.push("Keyboard (browser): A/Left, D/Right, W/Up, Space/Pause");
-  return lines.map(clampLine).join("\n");
+  return renderScoreboardLine(state);
 }

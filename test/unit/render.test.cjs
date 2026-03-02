@@ -13,8 +13,9 @@ test("text board dimensions match game state", () => {
   const state = createInitialState(10);
   const board = renderTextBoard(state);
   const lines = board.split("\n");
-  assert.equal(lines.length, state.height);
-  for (const line of lines) {
+  assert.equal(lines.length, state.height + 1);
+  assert.match(lines[0], /Score:\s*\d{2}/i);
+  for (const line of lines.slice(1)) {
     assert.equal(line.length, state.width);
   }
 });
@@ -28,14 +29,21 @@ test("render output remains deterministic for same immutable state", () => {
   assert.equal(two, three);
 });
 
-test("status render emits expected diagnostics lines", () => {
+test("status render emits single-line scoreboard", () => {
   let state = createInitialState(3);
   state = applyInput(state, "toggle_pause", 100);
   const status = renderBrowserStatus(state);
-  assert.equal(lineCount(status) >= 7, true);
-  assert.match(status, /STATE:\s*PAUSED/i);
-  assert.match(status, /Tick:/i);
-  assert.match(status, /Last Input:/i);
+  assert.equal(lineCount(status), 1);
+  assert.match(status, /Score:\s*\d{2}/i);
+  assert.match(status, /Best:\s*\d{2}/i);
+  assert.match(status, /Level:\s*\d{2}/i);
+  assert.match(status, /State:\s*PAUSED/i);
+});
+
+test("solid blocks render as filled squares", () => {
+  const state = createInitialState(15);
+  const board = renderTextBoard(state);
+  assert.match(board, /■/);
 });
 
 test("stress: repeated render and tick stays under budget", () => {
