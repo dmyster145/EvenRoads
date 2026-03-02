@@ -87,6 +87,19 @@ test("movement clamps at world boundaries", () => {
   assert.equal(up.playerY, 0);
 });
 
+test("movement honors maxPlayerX option", () => {
+  const state = createInitialState(8);
+  const maxPlayerX = state.width - 3;
+
+  const atVisibleEdge = { ...state, playerX: maxPlayerX };
+  const right = applyInput(atVisibleEdge, "move_right", 1, { maxPlayerX });
+  assert.equal(right.playerX, maxPlayerX);
+
+  const beyondVisibleEdge = { ...state, playerX: state.width - 1 };
+  const left = applyInput(beyondVisibleEdge, "move_left", 2, { maxPlayerX });
+  assert.equal(left.playerX, maxPlayerX - 1);
+});
+
 test("collision transitions to GAME OVER and preserves best score", () => {
   const state = forceRoadCollisionState(2);
   const collided = applyInput(state, "move_right", 10);

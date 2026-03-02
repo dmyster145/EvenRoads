@@ -60,7 +60,7 @@ function laneGlyphForProfile(lane: Lane, x: number): string {
   return laneGlyph(lane, x);
 }
 
-function visibleBoardWidth(stateWidth: number, profile: RenderGlyphProfile | undefined): number {
+export function visibleBoardWidth(stateWidth: number, profile: RenderGlyphProfile | undefined): number {
   if (profile !== "simulator") return stateWidth;
   return Math.max(0, stateWidth - 2);
 }

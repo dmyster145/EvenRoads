@@ -64,6 +64,14 @@ function createBrowserHarness(initialStorage = {}) {
   return { window, document, app, status, listeners };
 }
 
+function playerXFromBottomRow(boardText) {
+  const lines = boardText.split("\n");
+  const bottomRow = lines[lines.length - 1] ?? "";
+  const aliveX = bottomRow.indexOf("▲");
+  const crashedX = bottomRow.indexOf("※");
+  return aliveX >= 0 ? aliveX : crashedX;
+}
+
 function installTimerHarness() {
   const originalSetTimeout = global.setTimeout;
   const originalClearTimeout = global.clearTimeout;
@@ -303,19 +311,11 @@ test("initApp reset event clears score/best and restarts at a new home column", 
     const { initApp, restore } = loadInitWithBridgeClass(FakeBridge);
 
     try {
-      const playerXFromBoard = (boardText) => {
-        const lines = boardText.split("\n");
-        const bottomRow = lines[lines.length - 1] ?? "";
-        const aliveX = bottomRow.indexOf("▲");
-        const crashedX = bottomRow.indexOf("※");
-        return aliveX >= 0 ? aliveX : crashedX;
-      };
-
       await initApp();
       await flushMicrotasks();
 
       assert.match(browser.status.textContent, /Best:\s*42/i);
-      const beforeResetX = playerXFromBoard(browser.app.textContent);
+      const beforeResetX = playerXFromBottomRow(browser.app.textContent);
       assert.equal(beforeResetX >= 0, true, "expected player glyph before reset");
 
       browser.window.dispatch("evenroads:reset-best-score", {});
@@ -324,13 +324,52 @@ test("initApp reset event clears score/best and restarts at a new home column", 
       assert.match(browser.status.textContent, /Score:\s*00/i);
       assert.match(browser.status.textContent, /Best:\s*00/i);
       assert.equal(browser.window.localStorage.getItem("evenroads.bestScore"), "0");
-      const afterResetX = playerXFromBoard(browser.app.textContent);
+      const afterResetX = playerXFromBottomRow(browser.app.textContent);
       assert.equal(afterResetX >= 0, true, "expected player glyph after reset");
       assert.notEqual(afterResetX, beforeResetX, "expected new run to spawn at a different home column");
     } finally {
       restore();
       timerHarness.restore();
       Date.now = originalDateNow;
+      global.window = originalWindow;
+      global.document = originalDocument;
+    }
+  });
+});
+
+test("initApp simulator profile clamps right movement to visible board edge", async () => {
+  await withPerfClock(async () => {
+    const browser = createBrowserHarness({ "evenroads.displayProfile": "simulator" });
+    const timerHarness = installTimerHarness();
+    const originalWindow = global.window;
+    const originalDocument = global.document;
+    global.window = browser.window;
+    global.document = browser.document;
+
+    const FakeBridge = makeFakeBridgeClass();
+    const { initApp, restore } = loadInitWithBridgeClass(FakeBridge);
+
+    try {
+      await initApp();
+      await flushMicrotasks();
+
+      for (let i = 0; i < 64; i++) {
+        browser.window.dispatch("keydown", {
+          key: "ArrowRight",
+          repeat: false,
+          preventDefault() {},
+        });
+      }
+      await flushMicrotasks();
+
+      const lines = browser.app.textContent.split("\n");
+      const bottomRow = lines[lines.length - 1] ?? "";
+      const playerX = playerXFromBottomRow(browser.app.textContent);
+      assert.equal(playerX >= 0, true, "expected visible player glyph");
+      assert.equal(playerX, bottomRow.length - 1, "expected player clamped at visible right edge");
+    } finally {
+      restore();
+      timerHarness.restore();
       global.window = originalWindow;
       global.document = originalDocument;
     }

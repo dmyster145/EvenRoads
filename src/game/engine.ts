@@ -12,7 +12,11 @@ const MIN_TICK_MS = 90;
 const BASE_TICK_MS = 170;
 const NO_QUEUED_HOP = -1;
 const HOP_GRACE_TICKS = 3;
-const START_MESSAGE = "Scroll Up/Down: left/right. Tap: hop.";
+const START_MESSAGE = "Scroll Up/Down: right/left. Tap: hop.";
+
+export interface ApplyInputOptions {
+  maxPlayerX?: number;
+}
 
 function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
@@ -288,6 +292,21 @@ function clearCrossedMessageIfLeftHome(previous: GameState, next: GameState): Ga
   return { ...next, message: START_MESSAGE };
 }
 
+function resolveMaxPlayerX(state: GameState, options?: ApplyInputOptions): number {
+  const fallback = state.width - 1;
+  const requested = options?.maxPlayerX;
+  if (typeof requested !== "number" || !Number.isFinite(requested)) {
+    return fallback;
+  }
+  return clamp(Math.floor(requested), 0, fallback);
+}
+
+function clampPlayerX(state: GameState, maxPlayerX: number): GameState {
+  const nextX = clamp(state.playerX, 0, maxPlayerX);
+  if (nextX === state.playerX) return state;
+  return { ...state, playerX: nextX };
+}
+
 function isRoadLane(state: GameState, y: number): boolean {
   return state.lanes[y]?.type === "road";
 }
@@ -382,7 +401,7 @@ function handleGoalReached(state: GameState): GameState {
     level,
     tickIntervalMs: nextTickIntervalMs(level),
     bestScore: Math.max(state.bestScore, score),
-    message: `Crossed! Level ${level}fd`,
+    message: `Crossed! Level ${level}.`,
     lanes: createLanes(state.width, level, state.seed + score * 17),
     solidCells,
     bridgeCells,
@@ -393,59 +412,66 @@ function handleGoalReached(state: GameState): GameState {
   };
 }
 
-export function applyInput(state: GameState, action: InputAction, atMs: number): GameState {
+export function applyInput(
+  state: GameState,
+  action: InputAction,
+  atMs: number,
+  options?: ApplyInputOptions,
+): GameState {
+  const maxPlayerX = resolveMaxPlayerX(state, options);
+  const normalizedState = clampPlayerX(state, maxPlayerX);
   const withInputMeta = {
-    ...state,
+    ...normalizedState,
     lastInputAtMs: atMs,
     lastInputName: action,
   };
 
   if (action === "restart") {
-    if (state.runState !== "crashed!") {
-      return applyInput(state, "move_up", atMs);
+    if (normalizedState.runState !== "crashed!") {
+      return applyInput(normalizedState, "move_up", atMs, options);
     }
-    const restarted = createInitialState(state.seed + 1);
+    const restarted = clampPlayerX(createInitialState(normalizedState.seed + 1), maxPlayerX);
     return {
       ...restarted,
-      bestScore: Math.max(state.bestScore, state.score),
+      bestScore: Math.max(normalizedState.bestScore, normalizedState.score),
       lastInputAtMs: atMs,
       lastInputName: action,
-      message: "New run.",
+      message: "New game.",
     };
   }
 
   if (action === "toggle_pause") {
-    if (state.runState === "crashed!") return withInputMeta;
-    const nextState = state.runState === "paused" ? "alive" : "paused";
+    if (normalizedState.runState === "crashed!") return withInputMeta;
+    const nextState = normalizedState.runState === "paused" ? "alive" : "paused";
     return withMessage({ ...withInputMeta, runState: nextState }, nextState === "paused" ? "Paused." : "Resumed.");
   }
 
-  if (state.runState === "crashed!") {
+  if (normalizedState.runState === "crashed!") {
     return withInputMeta;
   }
 
-  if (state.runState !== "alive") return withInputMeta;
+  if (normalizedState.runState !== "alive") return withInputMeta;
 
-  let x = state.playerX;
-  let y = state.playerY;
-  let queuedHopUntilTick = action === "move_up" ? state.queuedHopUntilTick : NO_QUEUED_HOP;
-  const previousY = state.playerY;
+  let x = normalizedState.playerX;
+  let y = normalizedState.playerY;
+  let queuedHopUntilTick = action === "move_up" ? normalizedState.queuedHopUntilTick : NO_QUEUED_HOP;
+  const previousY = normalizedState.playerY;
 
-  if (action === "move_left") x = clamp(x - 1, 0, state.width - 1);
-  if (action === "move_right") x = clamp(x + 1, 0, state.width - 1);
+  if (action === "move_left") x = clamp(x - 1, 0, maxPlayerX);
+  if (action === "move_right") x = clamp(x + 1, 0, maxPlayerX);
   if (action === "move_up") {
-    const targetY = clamp(y - 1, 0, state.height - 1);
-    if (!isSolidCell(state, x, targetY) && hasRoadObstacleAt(state, x, targetY)) {
+    const targetY = clamp(y - 1, 0, normalizedState.height - 1);
+    if (!isSolidCell(normalizedState, x, targetY) && hasRoadObstacleAt(normalizedState, x, targetY)) {
       return {
         ...withInputMeta,
-        queuedHopUntilTick: state.tickCount + 1,
+        queuedHopUntilTick: normalizedState.tickCount + 1,
       };
     }
     y = targetY;
   }
-  if (isSolidCell(state, x, y)) {
-    x = state.playerX;
-    y = state.playerY;
+  if (isSolidCell(normalizedState, x, y)) {
+    x = normalizedState.playerX;
+    y = normalizedState.playerY;
   }
 
   let next: GameState = { ...withInputMeta, playerX: x, playerY: y, queuedHopUntilTick };
@@ -456,7 +482,7 @@ export function applyInput(state: GameState, action: InputAction, atMs: number):
     next = handleGoalReached(next);
   }
 
-  return clearCrossedMessageIfLeftHome(state, next);
+  return clearCrossedMessageIfLeftHome(normalizedState, next);
 }
 
 export function advanceTick(state: GameState): GameState {

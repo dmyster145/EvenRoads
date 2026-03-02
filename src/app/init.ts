@@ -22,7 +22,7 @@ import {
   perfNowMs,
   recordInput,
 } from "../perf/log";
-import { renderBrowserStatus, renderTextBoard } from "../render/text-board";
+import { renderBrowserStatus, renderTextBoard, visibleBoardWidth } from "../render/text-board";
 import { resolveRenderGlyphProfile, type RenderGlyphProfile } from "../render/display-profile";
 
 type RenderReason = "startup" | "input" | "tick";
@@ -49,6 +49,18 @@ function maskToPrimaryReason(mask: number): RenderReason {
   return "tick";
 }
 
+function clampPlayerXToVisibleWidth(state: GameState, glyphProfile: RenderGlyphProfile): GameState {
+  const visibleWidth = visibleBoardWidth(state.width, glyphProfile);
+  const maxPlayerX = Math.max(0, visibleWidth - 1);
+  const clampedPlayerX = Math.max(0, Math.min(maxPlayerX, state.playerX));
+  if (clampedPlayerX === state.playerX) return state;
+  return { ...state, playerX: clampedPlayerX };
+}
+
+function maxPlayableX(state: GameState, glyphProfile: RenderGlyphProfile): number {
+  return Math.max(0, visibleBoardWidth(state.width, glyphProfile) - 1);
+}
+
 export async function initApp(): Promise<void> {
   const perfEnabled = isPerfLoggingEnabled();
   const glyphProfile: RenderGlyphProfile = resolveRenderGlyphProfile();
@@ -64,7 +76,7 @@ export async function initApp(): Promise<void> {
   await bridge.init();
 
   const persistedBestScore = loadPersistedBestScore();
-  let state: GameState = createInitialState();
+  let state: GameState = clampPlayerXToVisibleWidth(createInitialState(), glyphProfile);
   if (persistedBestScore > state.bestScore) {
     state = { ...state, bestScore: persistedBestScore };
   }
@@ -111,7 +123,7 @@ export async function initApp(): Promise<void> {
   let lastRenderStatsLogAtMs = perfNowMs();
   const resetBestScoreHandler: EventListener = () => {
     if (destroyed) return;
-    const restarted = createInitialState(state.seed + 1);
+    const restarted = clampPlayerXToVisibleWidth(createInitialState(state.seed + 1), glyphProfile);
     lastPersistedBestScore = 0;
     state = {
       ...restarted,
@@ -413,7 +425,9 @@ export async function initApp(): Promise<void> {
     const prevTickMs = state.tickIntervalMs;
     const input = recordInput(action);
     lastInputAppliedAtMs = input.atMs;
-    state = applyInput(state, action, input.atMs);
+    state = applyInput(state, action, input.atMs, {
+      maxPlayerX: maxPlayableX(state, glyphProfile),
+    });
     syncCrashBlink();
     syncBestScorePersistence(state);
     scheduleRender("input");
@@ -439,7 +453,7 @@ export async function initApp(): Promise<void> {
 
       const beforeTickState = state;
       const nextTickState = advanceTick(beforeTickState);
-      state = nextTickState;
+      state = clampPlayerXToVisibleWidth(nextTickState, glyphProfile);
       syncCrashBlink();
       syncBestScorePersistence(state);
 
