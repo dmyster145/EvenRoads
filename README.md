@@ -4,6 +4,10 @@ Text-first Crossy Roads / Frogger-style game for **Even Realities G2** smart gla
 
 EvenRoads is designed around low-latency text container updates with deterministic gameplay and simulator-friendly preview behavior.
 
+## Demo
+
+<video src="assets/Demo_Video.mp4" controls width="640"></video>
+
 ## Screenshots
 
 | Alive | Crashed |
