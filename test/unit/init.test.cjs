@@ -17,7 +17,12 @@ function createBrowserHarness(initialStorage = {}) {
   const listeners = new Map();
   const app = { textContent: "" };
   const status = { textContent: "" };
-  const storageData = new Map(Object.entries(initialStorage));
+  const storageData = new Map(
+    Object.entries({
+      "evenroads.displayProfile": "device",
+      ...initialStorage,
+    }),
+  );
   const localStorage = {
     getItem(key) {
       return storageData.has(key) ? storageData.get(key) : null;

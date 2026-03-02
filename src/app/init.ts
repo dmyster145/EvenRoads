@@ -23,6 +23,7 @@ import {
   recordInput,
 } from "../perf/log";
 import { renderBrowserStatus, renderTextBoard } from "../render/text-board";
+import { resolveRenderGlyphProfile, type RenderGlyphProfile } from "../render/display-profile";
 
 type RenderReason = "startup" | "input" | "tick";
 const RENDER_REASON_STARTUP = 1;
@@ -50,9 +51,15 @@ function maskToPrimaryReason(mask: number): RenderReason {
 
 export async function initApp(): Promise<void> {
   const perfEnabled = isPerfLoggingEnabled();
+  const glyphProfile: RenderGlyphProfile = resolveRenderGlyphProfile();
   const boardRoot = document.getElementById("app");
   const statusRoot = document.getElementById("status");
   const bridge = new RoadsBridge();
+
+  console.log(`[EvenRoads] Display profile: ${glyphProfile}`);
+  if (glyphProfile === "simulator") {
+    console.log("[EvenRoads] Simulator glyph profile active");
+  }
 
   await bridge.init();
 
@@ -276,7 +283,7 @@ export async function initApp(): Promise<void> {
         try {
           const renderStartedAt = perfNowMs();
           const buildStartedAt = renderStartedAt;
-          const textRenderOptions = { showCrashedState: crashBlinkVisible };
+          const textRenderOptions = { showCrashedState: crashBlinkVisible, glyphProfile };
           const deviceText = renderTextBoard(state, textRenderOptions);
           const statusText = renderBrowserStatus(state, textRenderOptions);
           const buildMs = perfNowMs() - buildStartedAt;
@@ -457,8 +464,9 @@ export async function initApp(): Promise<void> {
   }
 
   syncCrashBlink();
-  const initialDeviceText = renderTextBoard(state, { showCrashedState: crashBlinkVisible });
-  const initialStatusText = renderBrowserStatus(state, { showCrashedState: crashBlinkVisible });
+  const initialRenderOptions = { showCrashedState: crashBlinkVisible, glyphProfile };
+  const initialDeviceText = renderTextBoard(state, initialRenderOptions);
+  const initialStatusText = renderBrowserStatus(state, initialRenderOptions);
   updatePreview(initialDeviceText, initialStatusText);
 
   bridge.subscribeEvents((event) => {

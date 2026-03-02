@@ -1,77 +1,124 @@
 # EvenRoads
 
-Text-first Crossy Roads / Frogger-style prototype for Even Realities G2.
+Text-first Crossy Roads / Frogger-style game for **Even Realities G2** smart glasses.
 
-## Current Scope
+EvenRoads is designed around low-latency text container updates with deterministic gameplay and simulator-friendly preview behavior.
 
-- Text rendering only (no image rendering path)
-- Reaction-time gameplay with moving road hazards
-- Low-overhead runtime with one-time page setup and per-frame text updates
+## Screenshots
 
-## Controls
+| Alive | Crashed |
+|:-----:|:-------:|
+| ![EvenRoads alive state](assets/screenshot-alive.png) | ![EvenRoads crashed state](assets/screenshot-crashed.png) |
 
-- `Scroll up`: move left
-- `Scroll down`: move right
-- `Tap`: move up
-- `Tap while game over`: restart
+## Quick links
 
-## Development
+- **In-app help:** Open the app URL on your phone to view game docs and controls from [index.html](index.html).
+- **SDK + development references:** [docs/SDKandDevResources.md](docs/SDKandDevResources.md)
+- **Performance baseline outputs:** [docs/perf/](docs/perf/)
 
-```bash
-npm install
-npm run dev
+## Tech stack
+
+- **Runtime:** TypeScript, Vite
+- **Game engine:** Internal deterministic engine in `src/game/`
+- **Glasses bridge:** [Even Hub SDK](https://www.npmjs.com/package/@evenrealities/even_hub_sdk)
+- **Rendering:** Text board rendering (device + simulator profiles)
+- **Tests:** Node test runner (`node --test`) with TypeScript-to-CJS test compile step
+
+## Project structure
+
+```text
+EvenRoads/
+├── index.html                 # Entry page; docs/help UI + app mount roots
+├── src/
+│   ├── main.ts                # App bootstrap
+│   ├── app/                   # Runtime orchestration + best-score persistence
+│   ├── game/                  # Deterministic game state + tick/input transitions
+│   ├── render/                # Text board rendering + simulator/device display profile
+│   ├── evenhub/               # SDK bridge + startup page container composition
+│   ├── input/                 # Even Hub event → gameplay action mapping
+│   ├── perf/                  # Perf logging, timing, and debug instrumentation
+│   └── debug/                 # On-page debug console
+├── test/
+│   ├── unit/                  # Unit tests
+│   └── stress/                # Stress simulation tests
+└── docs/
+    ├── SDKandDevResources.md  # External SDK/CLI/resource links
+    └── perf/                  # Baseline and latest perf summaries
 ```
 
-## Build
+## Prerequisites
+
+- **Node.js** — v20 or newer
+- **Even App + G2 glasses** — required for on-device testing
+- **evenhub-cli** (optional) — helpful for QR launch workflows
+
+## Setup
+
+1. **Clone and install**
+   ```bash
+   git clone https://github.com/owner/EvenRoads.git
+   cd EvenRoads
+   npm install
+   ```
+2. **Run locally**
+   ```bash
+   npm run dev
+   ```
+3. **Open in Even App**
+   - Run `npx evenhub qr` and scan in the Even App, or open your dev URL directly in the Even App browser.
+4. **Try it**
+   - On phone: use the URL to read docs/help.
+   - On glasses: play with scroll/tap gestures.
+
+## Usage on the glasses
+
+- **Scroll up** → move left
+- **Scroll down** → move right
+- **Tap** → move up
+- **Tap while crashed** → restart
+
+## Scripts
+
+| Command | Description |
+|---------|-------------|
+| `npm run dev` | Start dev server |
+| `npm run build` | Type-check and build production bundle |
+| `npm run preview` | Preview production build |
+| `npm run typecheck` | Run TypeScript type-check only |
+| `npm test` | Run compile + all unit/stress tests |
+| `npm run test:unit` | Compile tests and run Node test suites |
+| `npm run perf:analyze -- <logPath> --json <outPath>` | Analyze perf log output |
+| `npm run perf:baseline` | Regenerate committed perf baseline summary |
+| `npm run perf:compare -- <baseline> <candidate>` | Compare perf summaries |
+
+## Build and deploy
 
 ```bash
 npm run build
 ```
 
-## Automated Testing
+Output is in `dist/`. Deploy `dist/` to any static host, then open that URL in the Even App for production use.
 
-Run all unit and stress tests against compiled production modules:
+## Features (summary)
 
-```bash
-npm test
-```
+- Deterministic Crossy Roads/Frogger-style gameplay with increasing difficulty
+- Text-only board rendering tuned for Even Hub transport constraints
+- One-time startup page creation + coalesced text updates
+- Input dedupe guards for repeated event bursts from SDK/firmware paths
+- Best score persistence via storage
+- Simulator display profile support (including simulator-only right-edge trim for screenshot parity)
 
-### Performance Baseline Tracking
+## Performance and responsiveness
 
-Analyze a log export (from the debug panel copy output) and print issue flags:
+EvenRoads includes explicit transport-pressure handling and render scheduling strategies:
 
-```bash
-npm run perf:analyze -- /path/to/PerfLog.txt --json docs/perf/latest-summary.json
-```
+- queued/coalesced text updates with priority-aware dropping
+- tick-frame suppression under recent input or transport backpressure
+- render and bridge timing instrumentation in `src/perf/log.ts`
+- baseline/latest comparison workflow in `docs/perf/`
 
-Regenerate the committed baseline summary from `2026-03-01`:
+## License & credits
 
-```bash
-npm run perf:baseline
-```
-
-Compare a new run summary against the baseline:
-
-```bash
-npm run perf:compare -- docs/perf/baseline-summary.json docs/perf/latest-summary.json
-```
-
-## Architecture
-
-`src/game/*`
-- Deterministic engine and state contracts. No SDK dependencies.
-
-`src/input/mapper.ts`
-- Normalizes Even Hub events into engine actions with lightweight dedupe guards.
-
-`src/evenhub/*`
-- SDK bridge and startup page composition.
-
-`src/render/text-board.ts`
-- Pure string renderer for device board output and browser status panel.
-
-`src/app/init.ts`
-- Runtime orchestration: page setup, render scheduling, input dispatch, and tick loop.
-
-`src/debug/console.ts`
-- On-page log console for glass/device debugging without external devtools.
+- **Even Hub SDK** — [@evenrealities/even_hub_sdk](https://www.npmjs.com/package/@evenrealities/even_hub_sdk)
+- **Even Hub CLI** — [@evenrealities/evenhub-cli](https://www.npmjs.com/package/@evenrealities/evenhub-cli)
+- **License** — no `LICENSE` file is currently committed in this repository.

@@ -146,6 +146,80 @@ test("obstacle runs get directional start markers", () => {
   assert.equal(lines[leftRow + 1][14], "◈");
 });
 
+test("simulator glyph profile preserves device unicode glyph semantics", () => {
+  const state = createInitialState(18);
+  const rightRow = 2;
+  const leftRow = 3;
+
+  const lanes = state.lanes.slice();
+  lanes[rightRow] = {
+    ...lanes[rightRow],
+    type: "road",
+    direction: 1,
+    cells: new Array(state.width).fill(false),
+  };
+  lanes[rightRow].cells[4] = true;
+  lanes[rightRow].cells[5] = true;
+  lanes[rightRow].cells[6] = true;
+
+  lanes[leftRow] = {
+    ...lanes[leftRow],
+    type: "road",
+    direction: -1,
+    cells: new Array(state.width).fill(false),
+  };
+  lanes[leftRow].cells[12] = true;
+  lanes[leftRow].cells[13] = true;
+  lanes[leftRow].cells[14] = true;
+
+  const solidCells = state.solidCells.map((line) => line.slice());
+  const bridgeCells = state.bridgeCells.map((line) => line.slice());
+  for (let r = 0; r < state.height; r++) {
+    for (let c = 0; c < state.width; c++) {
+      solidCells[r][c] = false;
+      bridgeCells[r][c] = false;
+    }
+  }
+  solidCells[1][1] = true;
+  bridgeCells[1][2] = true;
+
+  const board = renderTextBoard(
+    { ...state, lanes, solidCells, bridgeCells },
+    { glyphProfile: "simulator" },
+  );
+  const lines = board.split("\n");
+  assert.equal(lines[rightRow + 1][4], "◈");
+  assert.equal(lines[rightRow + 1][5], "◈");
+  assert.equal(lines[rightRow + 1][6], "▷");
+  assert.equal(lines[leftRow + 1][12], "◁");
+  assert.equal(lines[leftRow + 1][13], "◈");
+  assert.equal(lines[leftRow + 1][14], "◈");
+  assert.equal(lines[2][1], "▩");
+  assert.equal(lines[2][2], "□");
+});
+
+test("simulator profile trims two rightmost board columns", () => {
+  const state = createInitialState(19);
+  const row = 1;
+  const lanes = state.lanes.slice();
+  lanes[row] = {
+    ...lanes[row],
+    type: "road",
+    direction: 1,
+    cells: new Array(state.width).fill(true),
+  };
+
+  const board = renderTextBoard({ ...state, lanes }, { glyphProfile: "simulator" });
+  const lines = board.split("\n");
+
+  for (const laneLine of lines.slice(1)) {
+    assert.equal(laneLine.length, state.width - 2);
+  }
+
+  const simulatorRow = lines[row + 1];
+  assert.equal(simulatorRow.length, state.width - 2);
+});
+
 test("stress: repeated render and tick stays under budget", () => {
   let state = createInitialState(99);
   const iterations = 12000;
