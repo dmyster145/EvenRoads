@@ -14,7 +14,7 @@ export interface Lane {
   cells: boolean[];
 }
 
-export type RunState = "alive" | "paused" | "dead!";
+export type RunState = "alive" | "paused" | "crashed!";
 
 export interface GameState {
   width: number;
@@ -31,6 +31,9 @@ export interface GameState {
   seed: number;
   lanes: Lane[];
   solidCells: boolean[][];
+  bridgeCells: boolean[][];
+  queuedHopUntilTick: number;
+  hopInvulnerableUntilTick: number;
   lastInputAtMs: number;
   lastInputName: string;
 }

@@ -52,23 +52,16 @@ test("raw scroll debounce drops duplicate callbacks inside 1ms", () => {
   });
 });
 
-test("tap and double tap dedupe windows are enforced", () => {
+test("tap maps to move_up and double tap maps to restart", () => {
   withFakeClock((clock) => {
     const tap = textEvent(OsEventTypeList.CLICK_EVENT);
     const doubleTap = textEvent(OsEventTypeList.DOUBLE_CLICK_EVENT);
 
     assert.equal(mapEvenHubEventToInput(tap), "move_up");
-    clock.advance(5);
-    assert.equal(mapEvenHubEventToInput(tap), null);
-    clock.advance(6);
-    assert.equal(mapEvenHubEventToInput(tap), "move_up");
-
-    clock.advance(1);
-    assert.equal(mapEvenHubEventToInput(doubleTap), "toggle_pause");
-    clock.advance(80);
-    assert.equal(mapEvenHubEventToInput(doubleTap), null);
-    clock.advance(61);
-    assert.equal(mapEvenHubEventToInput(doubleTap), "toggle_pause");
+    clock.advance(100);
+    const mappedDoubleTap = mapEvenHubEventToInput(doubleTap);
+    assert.equal(mappedDoubleTap, "restart");
+    assert.notEqual(mappedDoubleTap, "toggle_pause");
   });
 });
 

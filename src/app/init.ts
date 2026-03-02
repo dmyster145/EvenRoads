@@ -32,6 +32,7 @@ const RENDER_STATS_LOG_EVERY_MS = 4000;
 const RENDER_STATS_LOG_MIN_SAMPLES = 24;
 const PAGE_SETUP_RETRY_MS = 1500;
 const TICK_AFTER_INPUT_BRIDGE_COOLDOWN_MS = 95;
+const CRASH_BLINK_INTERVAL_MS = 420;
 const NO_INPUT_TRACE = { seq: 0, atMs: 0, name: "-" };
 
 function reasonToMask(reason: RenderReason): number {
@@ -62,6 +63,8 @@ export async function initApp(): Promise<void> {
   }
   let lastPersistedBestScore = state.bestScore;
   let tickTimer: ReturnType<typeof setTimeout> | null = null;
+  let crashBlinkTimer: ReturnType<typeof setInterval> | null = null;
+  let crashBlinkVisible = true;
   let destroyed = false;
 
   let requestedRenderVersion = 0;
@@ -99,6 +102,51 @@ export async function initApp(): Promise<void> {
   let inputToEnqueueMaxMs = 0;
   let lastInputAppliedAtMs = 0;
   let lastRenderStatsLogAtMs = perfNowMs();
+  const resetBestScoreHandler: EventListener = () => {
+    if (destroyed) return;
+    const restarted = createInitialState(state.seed + 1);
+    lastPersistedBestScore = 0;
+    state = {
+      ...restarted,
+      bestScore: 0,
+      message: "New game.",
+    };
+    syncCrashBlink();
+    persistBestScore(0);
+    scheduleRender("input");
+    scheduleTick();
+  };
+
+  function stopCrashBlink(): void {
+    if (!crashBlinkTimer) return;
+    clearInterval(crashBlinkTimer);
+    crashBlinkTimer = null;
+  }
+
+  function syncCrashBlink(): void {
+    if (destroyed) {
+      stopCrashBlink();
+      crashBlinkVisible = true;
+      return;
+    }
+    if (state.runState !== "crashed!") {
+      stopCrashBlink();
+      crashBlinkVisible = true;
+      return;
+    }
+    if (crashBlinkTimer) return;
+
+    crashBlinkVisible = true;
+    crashBlinkTimer = setInterval(() => {
+      if (destroyed) return;
+      if (state.runState !== "crashed!") {
+        syncCrashBlink();
+        return;
+      }
+      crashBlinkVisible = !crashBlinkVisible;
+      scheduleRender("tick");
+    }, CRASH_BLINK_INTERVAL_MS);
+  }
 
   function syncBestScorePersistence(nextState: GameState): void {
     if (nextState.bestScore <= lastPersistedBestScore) return;
@@ -228,8 +276,9 @@ export async function initApp(): Promise<void> {
         try {
           const renderStartedAt = perfNowMs();
           const buildStartedAt = renderStartedAt;
-          const deviceText = renderTextBoard(state);
-          const statusText = renderBrowserStatus(state);
+          const textRenderOptions = { showCrashedState: crashBlinkVisible };
+          const deviceText = renderTextBoard(state, textRenderOptions);
+          const statusText = renderBrowserStatus(state, textRenderOptions);
           const buildMs = perfNowMs() - buildStartedAt;
 
           const previewStartedAt = perfNowMs();
@@ -358,6 +407,7 @@ export async function initApp(): Promise<void> {
     const input = recordInput(action);
     lastInputAppliedAtMs = input.atMs;
     state = applyInput(state, action, input.atMs);
+    syncCrashBlink();
     syncBestScorePersistence(state);
     scheduleRender("input");
 
@@ -383,6 +433,7 @@ export async function initApp(): Promise<void> {
       const beforeTickState = state;
       const nextTickState = advanceTick(beforeTickState);
       state = nextTickState;
+      syncCrashBlink();
       syncBestScorePersistence(state);
 
       let didVisualChange = beforeTickState.runState !== nextTickState.runState;
@@ -405,8 +456,9 @@ export async function initApp(): Promise<void> {
     }, state.tickIntervalMs);
   }
 
-  const initialDeviceText = renderTextBoard(state);
-  const initialStatusText = renderBrowserStatus(state);
+  syncCrashBlink();
+  const initialDeviceText = renderTextBoard(state, { showCrashedState: crashBlinkVisible });
+  const initialStatusText = renderBrowserStatus(state, { showCrashedState: crashBlinkVisible });
   updatePreview(initialDeviceText, initialStatusText);
 
   bridge.subscribeEvents((event) => {
@@ -441,6 +493,7 @@ export async function initApp(): Promise<void> {
     }
   };
   window.addEventListener("keydown", keyHandler, { passive: false });
+  window.addEventListener("evenroads:reset-best-score", resetBestScoreHandler);
 
   scheduleRender("startup");
   scheduleTick();
@@ -451,8 +504,10 @@ export async function initApp(): Promise<void> {
       clearTimeout(tickTimer);
       tickTimer = null;
     }
+    stopCrashBlink();
     maybeLogRenderStats(true);
     window.removeEventListener("keydown", keyHandler);
+    window.removeEventListener("evenroads:reset-best-score", resetBestScoreHandler);
     void bridge.shutdown();
   });
 }

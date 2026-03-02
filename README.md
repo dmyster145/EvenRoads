@@ -13,7 +13,6 @@ Text-first Crossy Roads / Frogger-style prototype for Even Realities G2.
 - `Scroll up`: move left
 - `Scroll down`: move right
 - `Tap`: move up
-- `Double tap`: pause/resume
 - `Tap while game over`: restart
 
 ## Development

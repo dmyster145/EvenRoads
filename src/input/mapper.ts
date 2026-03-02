@@ -19,8 +19,8 @@ import { isPerfLoggingEnabled, perfLogLazy, perfNowMs } from "../perf/log";
 const RAW_SCROLL_DEBOUNCE_MS = 1;
 const SAME_DIR_SCROLL_DEDUPE_MS = 1;
 // Taps are more prone to accidental repeats from firmware and user finger bounce.
-const TAP_DEDUPE_MS = 10;
-const DOUBLE_TAP_DEDUPE_MS = 140;
+const TAP_DEDUPE_MS = 1;
+const DOUBLE_TAP_DEDUPE_MS = 20;
 const INPUT_PERF_LOG_EVERY_MS = 4000;
 const INPUT_PERF_LOG_MIN_DROPS = 16;
 const INPUT_PERF_LOG_MIN_MAPPED = 80;
@@ -119,17 +119,19 @@ function recordMapped(action: InputAction | null): InputAction | null {
 function mapEventType(eventType: number | undefined | null): InputAction | null {
   switch (eventType) {
     case OsEventTypeList.SCROLL_TOP_EVENT:
-      if (shouldDropScroll("up")) return null;
+      // On device, SCROLL_TOP_EVENT is emitted for a physical downward scroll.
+      if (shouldDropScroll("down")) return null;
       return "move_left";
     case OsEventTypeList.SCROLL_BOTTOM_EVENT:
-      if (shouldDropScroll("down")) return null;
+      // On device, SCROLL_BOTTOM_EVENT is emitted for a physical upward scroll.
+      if (shouldDropScroll("up")) return null;
       return "move_right";
     case OsEventTypeList.CLICK_EVENT:
       if (shouldDropTap(false)) return null;
       return "move_up";
     case OsEventTypeList.DOUBLE_CLICK_EVENT:
       if (shouldDropTap(true)) return null;
-      return "toggle_pause";
+      return "restart";
     default:
       return null;
   }

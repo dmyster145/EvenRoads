@@ -4,42 +4,442 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>EvenRoads</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
       :root {
-        color-scheme: light;
-      }
-      body {
-        margin: 0;
-        padding: 16px;
-        font-family: "SFMono-Regular", "Menlo", "Consolas", monospace;
-        background: #f4f4f4;
-        color: #111;
-      }
-      .layout {
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-        align-items: flex-start;
-      }
-      #status {
-        white-space: nowrap;
-        line-height: 1.2;
-        font-size: 13px;
-        background: #fff;
-        border: 1px solid #ddd;
-        border-radius: 8px;
-        padding: 8px 12px;
-      }
-      #app {
-        white-space: pre;
-        line-height: 1.2;
-        font-size: 13px;
-        background: #fff;
-        border: 1px solid #ddd;
-        border-radius: 8px;
-        padding: 12px;
+        /* Text Colors (TC) */
+        --tc-1st: #232323;
+        --tc-2nd: #7B7B7B;
+        --tc-highlight: #FFFFFF;
+        --tc-red: #FF4535;
+        --tc-green: #4BB954;
+
+        /* Background Colors (BC) */
+        --bc-1st: #FFFFFF;
+        --bc-2nd: #F6F6F6;
+        --bc-3rd: #EEEEEE;
+        --bc-4th: #E4E4E4;
+        --bc-accent: #FEF991;
+        --bc-highlight: #232323;
+
+        /* Semantic aliases */
+        --bg-primary: var(--bc-3rd);
+        --bg-secondary: var(--bc-2nd);
+        --bg-card: var(--bc-1st);
+        --bg-tertiary: var(--bc-4th);
+        --text-primary: var(--tc-1st);
+        --text-secondary: var(--tc-2nd);
+        --accent: var(--bc-accent);
+        --accent-dark: #E5E082;
+        --border: var(--bc-4th);
       }
 
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      body {
+        font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+        background-color: var(--bg-primary);
+        color: var(--text-primary);
+        line-height: 1.5;
+        min-height: 100vh;
+        font-size: 15px;
+        font-weight: 400;
+        letter-spacing: -0.15px;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+      }
+
+      .container {
+        max-width: 720px;
+        margin: 0 auto;
+        padding: 24px 12px;
+      }
+
+      .top-actions {
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        padding: 12px 14px;
+        margin-bottom: 18px;
+      }
+
+      .top-scores {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+      }
+
+      .top-score-item {
+        background: var(--bg-secondary);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        padding: 8px 10px;
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 10px;
+      }
+
+      .top-score-label {
+        color: var(--text-secondary);
+        font-size: 12px;
+        font-weight: 500;
+        letter-spacing: -0.12px;
+      }
+
+      .top-score-value {
+        color: var(--text-primary);
+        font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+        font-size: 16px;
+        font-weight: 600;
+        letter-spacing: -0.1px;
+      }
+
+      .top-actions-cta {
+        display: grid;
+        gap: 6px;
+        width: 100%;
+        margin-top: 10px;
+      }
+
+      .reset-best-btn {
+        width: 100%;
+        border: 1px solid var(--bc-highlight);
+        border-radius: 6px;
+        background: #FFFFFF;
+        color: #FF453A;
+        padding: 16px 16px;
+        font-size: 13px;
+        font-weight: 500;
+        letter-spacing: -0.13px;
+        cursor: pointer;
+        transition: background 0.2s, transform 0.2s;
+      }
+
+      .reset-best-btn:hover {
+        background: #FFFFFF;
+      }
+
+      .reset-best-btn:active {
+        transform: translateY(1px);
+      }
+
+      .reset-best-btn:focus-visible {
+        outline: 2px solid var(--bc-highlight);
+        outline-offset: 2px;
+      }
+
+      .reset-best-message {
+        min-height: 18px;
+        font-size: 12px;
+        letter-spacing: -0.12px;
+      }
+
+      .reset-best-message[data-tone="success"] {
+        color: var(--tc-green);
+      }
+
+      .reset-best-message[data-tone="error"] {
+        color: var(--tc-red);
+      }
+
+      /* Header & Logo */
+      .header {
+        text-align: center;
+        padding: 24px 0;
+        margin-bottom: 24px;
+      }
+
+      .logo {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        margin-bottom: 12px;
+      }
+
+      .logo-text {
+        font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+        font-size: 24px;
+        font-weight: 600;
+        letter-spacing: 1px;
+        color: var(--text-primary);
+      }
+
+      .logo-text .dot {
+        color: var(--text-primary);
+        font-size: 20px;
+        vertical-align: middle;
+        margin: 0 1px;
+      }
+
+      .knight-icon {
+        display: none;
+      }
+
+      .subtitle {
+        color: var(--text-secondary);
+        font-size: 13px;
+        font-weight: 400;
+        letter-spacing: -0.13px;
+        margin-top: 8px;
+      }
+
+      /* Table of Contents */
+      .toc {
+        background: var(--bg-card);
+        border-radius: 6px;
+        padding: 16px;
+        margin-bottom: 24px;
+      }
+
+      .toc h2 {
+        font-size: 11px;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: var(--text-secondary);
+        margin-bottom: 16px;
+      }
+
+      .toc-list {
+        list-style: none;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        gap: 6px;
+      }
+
+      .toc-list a {
+        color: var(--text-primary);
+        text-decoration: none;
+        font-size: 13px;
+        font-weight: 400;
+        letter-spacing: -0.13px;
+        display: block;
+        padding: 6px 10px;
+        background: var(--accent);
+        border-radius: 6px;
+        transition: background 0.2s, transform 0.2s;
+      }
+
+      .toc-list a:hover {
+        background: var(--accent-dark);
+        transform: translateY(-1px);
+      }
+
+      /* Sections */
+      .section {
+        margin-bottom: 12px;
+      }
+
+      details {
+        background: var(--bg-card);
+        border-radius: 6px;
+        overflow: hidden;
+      }
+
+      details[open] {
+        box-shadow: 0 0 0 2px var(--accent);
+      }
+
+      summary {
+        padding: 16px;
+        cursor: pointer;
+        font-weight: 500;
+        font-size: 17px;
+        letter-spacing: -0.17px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        user-select: none;
+        list-style: none;
+        transition: background 0.2s;
+      }
+
+      summary::-webkit-details-marker {
+        display: none;
+      }
+
+      summary::before {
+        content: '▸';
+        font-size: 12px;
+        color: var(--text-primary);
+        background: var(--accent);
+        width: 20px;
+        height: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 4px;
+        transition: transform 0.2s;
+      }
+
+      details[open] summary::before {
+        transform: rotate(90deg);
+      }
+
+      summary:hover {
+        background: var(--bg-secondary);
+      }
+
+      .section-content {
+        padding: 0 16px 16px;
+        color: var(--text-secondary);
+      }
+
+      .section-content h3 {
+        color: var(--text-primary);
+        font-size: 15px;
+        font-weight: 500;
+        letter-spacing: -0.15px;
+        margin: 16px 0 8px;
+        padding-bottom: 4px;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .section-content h3:first-child {
+        margin-top: 0;
+      }
+
+      .section-content p {
+        margin: 8px 0;
+        font-size: 15px;
+        font-weight: 300;
+        letter-spacing: -0.15px;
+      }
+
+      .section-content ul,
+      .section-content ol {
+        margin: 8px 0 8px 20px;
+        font-size: 15px;
+        font-weight: 300;
+        letter-spacing: -0.15px;
+        padding-left: 8px;
+      }
+
+      .section-content li {
+        margin: 6px 0;
+      }
+
+      /* Code/command styling */
+      code {
+        font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+        background: var(--bg-secondary);
+        padding: 2px 6px;
+        border-radius: 6px;
+        font-size: 13px;
+        color: var(--text-primary);
+      }
+
+      /* Gesture cards */
+      .gesture-grid {
+        display: grid;
+        gap: 6px;
+        margin: 12px 0;
+      }
+
+      .gesture-card {
+        background: var(--bg-secondary);
+        border-radius: 6px;
+        padding: 12px 16px;
+        font-size: 15px;
+        font-weight: 300;
+      }
+
+      .gesture-card strong {
+        color: var(--text-primary);
+        display: block;
+        margin-bottom: 4px;
+        font-weight: 500;
+      }
+
+      /* Time control table (reused for reference tables) */
+      .time-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0 6px;
+        margin: 12px 0;
+        font-size: 15px;
+        font-weight: 300;
+      }
+
+      .time-table th,
+      .time-table td {
+        padding: 8px 12px;
+        text-align: left;
+      }
+
+      .time-table th {
+        color: var(--text-secondary);
+        font-weight: 500;
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      .time-table tr {
+        background: var(--bg-secondary);
+      }
+
+      .time-table td:first-child {
+        font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+        color: var(--text-primary);
+        font-weight: 500;
+        border-radius: 6px 0 0 6px;
+      }
+
+      .time-table td:last-child {
+        border-radius: 0 6px 6px 0;
+      }
+
+      /* Tips */
+      .tip {
+        background: var(--accent);
+        padding: 12px 16px;
+        margin: 12px 0;
+        border-radius: 6px;
+        font-size: 15px;
+        font-weight: 300;
+      }
+
+      .tip strong {
+        color: var(--text-primary);
+        font-weight: 500;
+      }
+
+      /* Footer */
+      .footer {
+        text-align: center;
+        padding: 24px 0;
+        margin-top: 24px;
+        color: var(--text-secondary);
+        font-size: 11px;
+        font-weight: 400;
+        letter-spacing: -0.11px;
+      }
+
+      .footer a {
+        color: var(--text-primary);
+        text-decoration: underline;
+      }
+
+      /* Hide app containers used by runtime text render */
+      #app,
+      #status {
+        display: none;
+      }
+
+      /* Preserve existing perf console panel styles and IDs for src/perf/log.ts wiring */
       #perf-console-panel {
         position: fixed;
         right: 8px;
@@ -107,10 +507,300 @@
     </style>
   </head>
   <body>
-    <div class="layout">
-      <div id="status">Score: 00  Best: 00  Level: 01  State: RUNNING</div>
-      <div id="app">EvenRoads - loading board...</div>
+    <div id="app"></div>
+    <div id="status"></div>
+
+    <div class="container">
+      <header class="header">
+        <div class="logo">
+          <span class="logo-text">EVEN<span class="dot">•</span>ROADS</span>
+          <svg class="knight-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <path d="M19 22H5v-2h14v2M17.16 8.26A3.99 3.99 0 0 0 18 6c0-.23-.03-.46-.06-.69l1.56-.56-.37-1.45-1.67.6a4.007 4.007 0 0 0-2.7-1.86l.2-1.04h-1.5l-.2 1.04c-1.14.18-2.13.78-2.78 1.67l-1.5-.54-.36 1.45 1.33.48C10.08 5.4 10 5.68 10 6c0 .93.32 1.78.85 2.46L4 20h2l4.46-8.91c.75.52 1.65.84 2.62.9l.92 3.56 1.94-.5-.86-3.31a4.01 4.01 0 0 0 2.08-3.48z"/>
+          </svg>
+        </div>
+        <p class="subtitle">Road crossing for Even Realities G2</p>
+      </header>
+
+      <section class="top-actions" aria-label="Score controls">
+        <div class="top-scores" aria-label="Current score">
+          <div class="top-score-item">
+            <span class="top-score-label">Score</span>
+            <span class="top-score-value" id="top-score-current">00</span>
+          </div>
+          <div class="top-score-item">
+            <span class="top-score-label">Best</span>
+            <span class="top-score-value" id="top-score-best">00</span>
+          </div>
+        </div>
+        <div class="top-actions-cta">
+          <button id="reset-best-score-btn" class="reset-best-btn" type="button">Reset Scores</button>
+          <p id="reset-best-score-message" class="reset-best-message" role="status" aria-live="polite"></p>
+        </div>
+      </section>
+
+      <nav class="toc">
+        <h2>Quick Navigation</h2>
+        <ul class="toc-list">
+          <li><a href="#getting-started">Getting Started</a></li>
+          <li><a href="#board-layout">Board Layout</a></li>
+          <li><a href="#controls">Controls</a></li>
+          <li><a href="#gameplay">Gameplay Flow</a></li>
+          <li><a href="#rules">Rules</a></li>
+          <li><a href="#progression">Scoring & Progression</a></li>
+          <li><a href="#status-feedback">Status & Feedback</a></li>
+          <li><a href="#save-resume">Persistence</a></li>
+          <li><a href="#tips">Tips & Notes</a></li>
+        </ul>
+      </nav>
+
+      <section class="section" id="getting-started">
+        <details>
+          <summary>Getting Started</summary>
+          <div class="section-content">
+            <h3>Welcome</h3>
+            <p>EvenRoads is a road crossing game for Even Realities G2. Move left or right, hop up, and cross traffic to reach the goal row.</p>
+
+            <h3>Objective</h3>
+            <p>Start on the bottom row and reach the top row without crashing. New games spawn at a random bottom-row column. After each successful crossing, you respawn on the bottom row in the same column.</p>
+
+            <h3>Launch Behavior</h3>
+            <ul>
+              <li>A new game starts immediately</li>
+              <li>Only <strong>best score</strong> is restored</li>
+              <li>After a crash, double tap to start a new game at a random bottom-row column</li>
+            </ul>
+
+            <h3>What This Covers</h3>
+            <p>This guide reflects the current build: controls, rules, hazards, and progression.</p>
+          </div>
+        </details>
+      </section>
+
+      <section class="section" id="board-layout">
+        <details>
+          <summary>Board Layout</summary>
+          <div class="section-content">
+            <h3>Playfield Dimensions</h3>
+            <ul>
+              <li><strong>Width:</strong> 28 columns</li>
+              <li><strong>Height:</strong> 9 rows</li>
+              <li><strong>Top row:</strong> Goal lane</li>
+              <li><strong>Bottom row:</strong> Start lane</li>
+              <li><strong>Middle rows:</strong> Road lanes with moving traffic</li>
+            </ul>
+
+            <h3>Board Glyphs</h3>
+            <table class="time-table">
+              <thead>
+                <tr>
+                  <th>Glyph</th>
+                  <th>Meaning</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td><code>▲</code></td><td>Player while alive</td></tr>
+                <tr><td><code>※</code></td><td>Player marker on death</td></tr>
+                <tr><td><code>◈</code>, <code>▷</code>, <code>◁</code></td><td>Road traffic (arrow variants indicate flow direction)</td></tr>
+                <tr><td><code>▒</code></td><td>Open road cell</td></tr>
+                <tr><td><code>▩</code></td><td>Solid blocker (impassable)</td></tr>
+                <tr><td><code>□</code></td><td>Bridge safe cell and part of goal/start row patterns</td></tr>
+              </tbody>
+            </table>
+
+            <div class="tip">
+              <strong>Note:</strong> Bridge cells are always safe, even if traffic passes through the same cell.
+            </div>
+          </div>
+        </details>
+      </section>
+
+      <section class="section" id="controls">
+        <details>
+          <summary>Controls</summary>
+          <div class="section-content">
+            <p>Use these inputs:</p>
+
+            <div class="gesture-grid">
+              <div class="gesture-card">
+                <strong>Scroll Up</strong>
+                Move right one column.
+              </div>
+
+              <div class="gesture-card">
+                <strong>Scroll Down</strong>
+                Move left one column.
+              </div>
+
+              <div class="gesture-card">
+                <strong>Tap</strong>
+                Hop up one row.
+              </div>
+
+              <div class="gesture-card">
+                <strong>Double Tap</strong>
+                Hop up while running. Restart after a crash.
+              </div>
+
+            </div>
+
+            <h3>Input Map</h3>
+            <table class="time-table">
+              <thead>
+                <tr>
+                  <th>Gesture</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td>Scroll Up</td><td><code>move_right</code></td></tr>
+                <tr><td>Scroll Down</td><td><code>move_left</code></td></tr>
+                <tr><td>Tap</td><td><code>move_up</code></td></tr>
+                <tr><td>Double Tap</td><td><code>move_up</code> while running, <code>restart</code> while crashed</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </details>
+      </section>
+
+      <section class="section" id="gameplay">
+        <details>
+          <summary>Gameplay Flow</summary>
+          <div class="section-content">
+            <h3>Basic Loop</h3>
+            <ol>
+              <li>Align with safe openings using left/right movement</li>
+              <li>Tap to hop up one row at a time</li>
+              <li>Avoid traffic and solid blockers</li>
+              <li>Reach the top row to score and level up</li>
+            </ol>
+
+            <h3>Lane Motion</h3>
+            <ul>
+              <li>Road lanes shift over time while state is <code>ALIVE</code></li>
+              <li>Adjacent road rows flow in opposite directions</li>
+              <li>Higher levels speed up lane updates</li>
+              <li>Traffic wraps around screen edges</li>
+            </ul>
+
+          </div>
+        </details>
+      </section>
+
+      <section class="section" id="rules">
+        <details>
+          <summary>Rules</summary>
+          <div class="section-content">
+            <h3>Movement Rules</h3>
+            <ul>
+              <li>Left/right moves clamp at board edges</li>
+              <li>Up movement cannot go above the goal row</li>
+              <li>There is no down action</li>
+              <li>You cannot move into solid blocker cells</li>
+            </ul>
+
+            <h3>Collision Rules</h3>
+            <ul>
+              <li>Touching traffic on a non-bridge road cell causes a crash.</li>
+              <li>Bridge cells ignore traffic collision</li>
+              <li>The HUD state label blinks <code>CRASHED!</code> while crashed</li>
+            </ul>
+
+            <h3>Restart</h3>
+            <ul>
+              <li>When crashed, only double tap starts a new game</li>
+            </ul>
+
+            <div class="tip">
+              <strong>Tip:</strong> Use direction markers (<code>▷</code>/<code>◁</code>) to predict where gaps will be next tick.
+            </div>
+          </div>
+        </details>
+      </section>
+
+      <section class="section" id="progression">
+        <details>
+          <summary>Scoring &amp; Progression</summary>
+          <div class="section-content">
+            <h3>Scoring</h3>
+            <ul>
+              <li>Each top-row crossing adds <strong>+1</strong> score</li>
+              <li><strong>Best</strong> updates when current score exceeds prior best</li>
+            </ul>
+
+            <h3>Leveling</h3>
+            <ul>
+              <li>Each successful crossing increases level by 1</li>
+              <li>Each new level regenerates traffic, blockers, and bridges</li>
+              <li>Tick interval decreases with level down to a minimum floor</li>
+            </ul>
+
+            <h3>On Goal Reach</h3>
+            <ul>
+              <li>Message updates to <code>Crossed! Level #</code></li>
+              <li>Player respawns on the bottom row at the same column used to cross</li>
+              <li>The game continues immediately at higher difficulty</li>
+            </ul>
+          </div>
+        </details>
+      </section>
+
+      <section class="section" id="status-feedback">
+        <details>
+          <summary>Status &amp; Feedback</summary>
+          <div class="section-content">
+            <h3>Scoreboard Line</h3>
+            <p>The status line shows:</p>
+            <ul>
+              <li><code>Score: ##</code></li>
+              <li><code>Best: ##</code></li>
+              <li><code>State: ALIVE / CRASHED!</code></li>
+              <li><code>Crossed! Level #</code> appears after crossing until you leave the home row</li>
+            </ul>
+
+          </div>
+        </details>
+      </section>
+
+      <section class="section" id="save-resume">
+        <details>
+          <summary>Persistence</summary>
+          <div class="section-content">
+            <h3>What Is Saved</h3>
+            <ul>
+              <li>Only <strong>best score</strong> is persisted</li>
+              <li>It is stored in browser <code>localStorage</code> as <code>evenroads.bestScore</code></li>
+              <li>Use <strong>Reset Scores</strong> to clear current score and best score, then start a new game</li>
+            </ul>
+
+            <h3>What Is Not Saved</h3>
+            <ul>
+              <li>Current game position, score, level, and board layout are not resumed</li>
+              <li>Each launch starts a fresh game</li>
+            </ul>
+          </div>
+        </details>
+      </section>
+
+      <section class="section" id="tips">
+        <details>
+          <summary>Tips &amp; Notes</summary>
+          <div class="section-content">
+            <h3>Practical Play Tips</h3>
+            <ul>
+              <li>Move horizontally early to line up with bridge cells.</li>
+              <li>On higher levels, commit sooner because lanes update faster.</li>
+              <li>If a hop queues, watch lane motion before your next input.</li>
+              <li>Read alternating lane flow early and time hops one row ahead.</li>
+            </ul>
+          </div>
+        </details>
+      </section>
+
+      <footer class="footer">
+        <p>EvenRoads docs | Road crossing game for Even Realities G2</p>
+      </footer>
     </div>
+
     <div id="perf-console-panel" data-collapsed="false" aria-live="polite">
       <div id="perf-console-header">
         <span id="perf-console-title">Perf Console</span>
@@ -121,6 +811,107 @@
       </div>
       <pre id="perf-console-output"></pre>
     </div>
+
     <script type="module" src="/src/main.ts"></script>
+    <script>
+      const BEST_SCORE_STORAGE_KEY = 'evenroads.bestScore';
+
+      function setResetBestScoreMessage(text, tone) {
+        const messageEl = document.getElementById('reset-best-score-message');
+        if (!messageEl) return;
+        messageEl.textContent = text;
+        if (tone) messageEl.setAttribute('data-tone', tone);
+        else messageEl.removeAttribute('data-tone');
+      }
+
+      function initBestScoreResetControl() {
+        const resetBtn = document.getElementById('reset-best-score-btn');
+        if (!resetBtn) return;
+
+        resetBtn.addEventListener('click', function () {
+          const confirmed = window.confirm('Reset scores to zero?' + '\n' + 'This starts a new game.');
+          if (!confirmed) {
+            setResetBestScoreMessage('', '');
+            return;
+          }
+
+          try {
+            if (window.localStorage) {
+              window.localStorage.setItem(BEST_SCORE_STORAGE_KEY, '0');
+            }
+            window.dispatchEvent(new CustomEvent('evenroads:reset-best-score'));
+            setResetBestScoreMessage('Scores reset. New game started.', 'success');
+          } catch {
+            setResetBestScoreMessage('Could not reset scores on this device.', 'error');
+          }
+        });
+      }
+
+      function syncTopScoreDisplay() {
+        const scoreEl = document.getElementById('top-score-current');
+        const bestEl = document.getElementById('top-score-best');
+        if (!scoreEl || !bestEl) return;
+
+        const statusEl = document.getElementById('status');
+        const statusText = statusEl && statusEl.textContent ? statusEl.textContent : '';
+        const scoreMatch = statusText.match(/Score:\s*(\d+)/i);
+        const bestMatch = statusText.match(/Best:\s*(\d+)/i);
+
+        if (scoreMatch) scoreEl.textContent = scoreMatch[1].padStart(2, '0');
+        if (bestMatch) bestEl.textContent = bestMatch[1].padStart(2, '0');
+
+        if (!bestMatch) {
+          try {
+            const storedBest = window.localStorage ? window.localStorage.getItem(BEST_SCORE_STORAGE_KEY) : null;
+            if (storedBest != null) {
+              const parsed = Number(storedBest);
+              if (Number.isFinite(parsed)) {
+                bestEl.textContent = String(Math.max(0, Math.floor(parsed))).padStart(2, '0');
+              }
+            }
+          } catch {
+            // Ignore localStorage access errors.
+          }
+        }
+      }
+
+      function initTopScoreDisplay() {
+        syncTopScoreDisplay();
+        const statusEl = document.getElementById('status');
+        if (!statusEl || typeof MutationObserver === 'undefined') return;
+        const observer = new MutationObserver(syncTopScoreDisplay);
+        observer.observe(statusEl, { childList: true, characterData: true, subtree: true });
+      }
+
+      // Expand the section that matches the given id (or current URL hash)
+      function openSectionForHash(idOrEmpty) {
+        const id = idOrEmpty != null ? idOrEmpty : window.location.hash.substring(1);
+        if (!id) return;
+        const section = document.getElementById(id);
+        if (section) {
+          const details = section.querySelector('details');
+          if (details) details.setAttribute('open', '');
+        }
+      }
+      window.addEventListener('hashchange', function () { openSectionForHash(); });
+      // On link click, always open the target section (so re-clicking the same link expands it again)
+      document.addEventListener('click', function (e) {
+        const a = e.target.closest('a[href^="#"]');
+        if (!a) return;
+        const id = a.getAttribute('href').substring(1);
+        if (id) openSectionForHash(id);
+      });
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', function () {
+          initTopScoreDisplay();
+          initBestScoreResetControl();
+          openSectionForHash();
+        });
+      } else {
+        initTopScoreDisplay();
+        initBestScoreResetControl();
+        openSectionForHash();
+      }
+    </script>
   </body>
 </html>

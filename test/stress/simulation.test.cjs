@@ -23,10 +23,16 @@ function assertStateInvariants(state) {
   assert.equal(state.playerY >= 0 && state.playerY < state.height, true);
   assert.equal(state.lanes.length, state.height);
   assert.equal(state.solidCells.length, state.height);
+  assert.equal(state.bridgeCells.length, state.height);
+  assert.equal(Number.isInteger(state.queuedHopUntilTick), true);
+  assert.equal(Number.isInteger(state.hopInvulnerableUntilTick), true);
   for (const lane of state.lanes) {
     assert.equal(lane.cells.length, state.width);
   }
   for (const row of state.solidCells) {
+    assert.equal(row.length, state.width);
+  }
+  for (const row of state.bridgeCells) {
     assert.equal(row.length, state.width);
   }
 }
