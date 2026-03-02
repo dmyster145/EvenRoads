@@ -121,4 +121,4 @@ EvenRoads includes explicit transport-pressure handling and render scheduling st
 
 - **Even Hub SDK** — [@evenrealities/even_hub_sdk](https://www.npmjs.com/package/@evenrealities/even_hub_sdk)
 - **Even Hub CLI** — [@evenrealities/evenhub-cli](https://www.npmjs.com/package/@evenrealities/evenhub-cli)
-- **License** — no `LICENSE` file is currently committed in this repository.
+- **License** — MIT License. See [LICENSE](LICENSE).
