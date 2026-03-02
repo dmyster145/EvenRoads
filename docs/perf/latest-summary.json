@@ -1,44 +1,44 @@
 {
-  "generatedAt": "2026-03-01T23:09:00.291Z",
+  "generatedAt": "2026-03-01T23:11:24.793Z",
   "sourceLog": "/Users/dustinharmon/Downloads/PerfLog.txt",
   "summary": {
     "startup": {
-      "setupMs": 355,
-      "maxSetupMs": 355,
+      "setupMs": 231.6,
+      "maxSetupMs": 231.6,
       "samples": 1
     },
     "bridge": {
-      "windows": 8,
-      "sends": 76,
+      "windows": 3,
+      "sends": 27,
       "failed": 0,
       "coalesced": 0,
       "droppedLowPri": 0,
       "droppedRecentInputTick": 0,
-      "weightedAvgSendMs": 134.21315789473684,
-      "weightedAvgQueueMs": 1.956578947368421,
-      "maxSendMs": 298.6,
-      "minSendMs": 0,
-      "maxQueueMs": 83.9
+      "weightedAvgSendMs": 154.43333333333334,
+      "weightedAvgQueueMs": 5.7666666666666675,
+      "maxSendMs": 354.4,
+      "minSendMs": 86.5,
+      "maxQueueMs": 147.1
     },
     "render": {
-      "windows": 8,
-      "samples": 79,
-      "weightedAvgBuildMs": 0.099873417721519,
-      "weightedAvgSetupMs": 0.006962025316455697,
-      "weightedAvgEnqueueMs": 0.02645569620253165,
-      "weightedAvgInputToRenderMs": 0.09620253164556963,
-      "weightedAvgInputToEnqueueMs": 0.3886075949367089,
-      "maxSetupMs": 0.6,
-      "skippedBridgeWrites": 4,
+      "windows": 4,
+      "samples": 39,
+      "weightedAvgBuildMs": 0.11025641025641025,
+      "weightedAvgSetupMs": 0.030256410256410262,
+      "weightedAvgEnqueueMs": 0.038205128205128204,
+      "weightedAvgInputToRenderMs": 0.08717948717948718,
+      "weightedAvgInputToEnqueueMs": 0.31538461538461543,
+      "maxSetupMs": 1.1,
+      "skippedBridgeWrites": 3,
       "skippedPreviewWrites": 1,
-      "skippedBusyTickWrites": 3,
+      "skippedBusyTickWrites": 2,
       "skippedInputCooldownTickWrites": 0,
-      "skippedStaticTickRenders": 140
+      "skippedStaticTickRenders": 68
     },
     "input": {
-      "burstWindows": 7,
-      "events": 31,
-      "mapped": 30,
+      "burstWindows": 3,
+      "events": 16,
+      "mapped": 13,
       "dropped": 0,
       "dropRate": 0,
       "eventP50InputToRenderMs": 0,
@@ -51,12 +51,22 @@
     {
       "severity": "warn",
       "code": "bridge_avg_send_high",
-      "message": "Bridge weighted avg send is 134.2ms (>120ms)."
+      "message": "Bridge weighted avg send is 154.4ms (>120ms)."
     },
     {
       "severity": "warn",
       "code": "bridge_max_send_high",
-      "message": "Bridge max send spike is 298.6ms (>250ms). Likely cold-start or transient SDK stall."
+      "message": "Bridge max send spike is 354.4ms (>250ms). Likely cold-start or transient SDK stall."
+    },
+    {
+      "severity": "info",
+      "code": "bridge_send_spike_spread",
+      "message": "Bridge send spread is 4.1x (max=354.4ms min=86.5ms). Average is pulled by outlier spikes rather than consistent baseline."
+    },
+    {
+      "severity": "warn",
+      "code": "bridge_queue_spikes",
+      "message": "Bridge queue delay spikes to 147.1ms (>100ms)."
     }
   ]
 }
