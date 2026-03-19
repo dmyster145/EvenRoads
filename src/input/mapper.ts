@@ -55,7 +55,7 @@ function maybeLogInputPerf(force = false): void {
 
   perfLogLazy(
     () =>
-      `[EvenRoads][Perf][Input] mapped=${mappedCount} dropRawScroll=${droppedRawScrollCount} ` +
+      `[HoppyRoads][Perf][Input] mapped=${mappedCount} dropRawScroll=${droppedRawScrollCount} ` +
       `dropSameDirScroll=${droppedSameDirectionScrollCount} dropTap=${droppedTapCount} dropDoubleTap=${droppedDoubleTapCount}`,
   );
 

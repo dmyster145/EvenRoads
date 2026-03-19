@@ -9,7 +9,7 @@ const {
 function makeStorage(initial = null) {
   const values = new Map();
   if (initial !== null) {
-    values.set("evenroads.bestScore", initial);
+    values.set("hoppyroads.bestScore", initial);
   }
   return {
     getItem(key) {
@@ -38,7 +38,7 @@ test("loadPersistedBestScore normalizes invalid values", () => {
 test("persistBestScore stores normalized integer value", () => {
   const storage = makeStorage();
   persistBestScore(19.8, storage);
-  assert.equal(storage.getItem("evenroads.bestScore"), "19");
+  assert.equal(storage.getItem("hoppyroads.bestScore"), "19");
 });
 
 test("loadPersistedBestScore returns 0 when storage read throws", () => {

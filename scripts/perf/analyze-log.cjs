@@ -68,7 +68,7 @@ function parsePerfLog(text) {
   const inputEvents = [];
 
   for (const line of lines) {
-    const setup = safeRegex(line, /\[EvenRoads\]\[Perf\]\[Bridge\] setupPage=(?<setup>[0-9.]+)ms/);
+    const setup = safeRegex(line, /\[HoppyRoads\]\[Perf\]\[Bridge\] setupPage=(?<setup>[0-9.]+)ms/);
     if (setup) {
       startupSetupMs.push(toNum(setup.setup));
       continue;
@@ -76,7 +76,7 @@ function parsePerfLog(text) {
 
     const bridgeSummary = safeRegex(
       line,
-      /\[EvenRoads\]\[Perf\]\[Bridge\] sends=(?<sends>\d+) avgSend=(?<avgSend>[0-9.]+)ms maxSend=(?<maxSend>[0-9.]+)ms(?: minSend=(?<minSend>[0-9.]+)ms)? avgQueue=(?<avgQueue>[0-9.]+)ms maxQueue=(?<maxQueue>[0-9.]+)ms coalesced=(?<coalesced>\d+) skippedSame=(?<skippedSame>\d+)(?: droppedLowPri=(?<droppedLowPri>\d+))?(?: dropRecentInputTick=(?<dropRecentInputTick>\d+))? failed=(?<failed>\d+)/,
+      /\[HoppyRoads\]\[Perf\]\[Bridge\] sends=(?<sends>\d+) avgSend=(?<avgSend>[0-9.]+)ms maxSend=(?<maxSend>[0-9.]+)ms(?: minSend=(?<minSend>[0-9.]+)ms)? avgQueue=(?<avgQueue>[0-9.]+)ms maxQueue=(?<maxQueue>[0-9.]+)ms coalesced=(?<coalesced>\d+) skippedSame=(?<skippedSame>\d+)(?: droppedLowPri=(?<droppedLowPri>\d+))?(?: dropRecentInputTick=(?<dropRecentInputTick>\d+))? failed=(?<failed>\d+)/,
     );
     if (bridgeSummary) {
       bridge.push({
@@ -97,7 +97,7 @@ function parsePerfLog(text) {
 
     const renderSummary = safeRegex(
       line,
-      /\[EvenRoads\]\[Perf\]\[Render\] samples=(?<samples>\d+) avgBuild=(?<avgBuild>-?[0-9.]+)ms maxBuild=(?<maxBuild>-?[0-9.]+)ms avgPreview=(?<avgPreview>-?[0-9.]+)ms maxPreview=(?<maxPreview>-?[0-9.]+)ms avgSetup=(?<avgSetup>-?[0-9.]+)ms maxSetup=(?<maxSetup>-?[0-9.]+)ms avgEnqueue=(?<avgEnqueue>-?[0-9.]+)ms maxEnqueue=(?<maxEnqueue>-?[0-9.]+)ms skipPreview=(?<skipPreview>\d+) skipBridge=(?<skipBridge>\d+)(?: skipBusyTick=(?<skipBusyTick>\d+))?(?: skipInputCooldownTick=(?<skipInputCooldownTick>\d+))?(?: skipStaticTick=(?<skipStaticTick>\d+))? input->render=(?<inputToRender>-?[0-9.]+)ms max=(?<inputToRenderMax>-?[0-9.]+)ms input->enqueue=(?<inputToEnqueue>-?[0-9.]+)ms max=(?<inputToEnqueueMax>-?[0-9.]+)ms/,
+      /\[HoppyRoads\]\[Perf\]\[Render\] samples=(?<samples>\d+) avgBuild=(?<avgBuild>-?[0-9.]+)ms maxBuild=(?<maxBuild>-?[0-9.]+)ms avgPreview=(?<avgPreview>-?[0-9.]+)ms maxPreview=(?<maxPreview>-?[0-9.]+)ms avgSetup=(?<avgSetup>-?[0-9.]+)ms maxSetup=(?<maxSetup>-?[0-9.]+)ms avgEnqueue=(?<avgEnqueue>-?[0-9.]+)ms maxEnqueue=(?<maxEnqueue>-?[0-9.]+)ms skipPreview=(?<skipPreview>\d+) skipBridge=(?<skipBridge>\d+)(?: skipBusyTick=(?<skipBusyTick>\d+))?(?: skipInputCooldownTick=(?<skipInputCooldownTick>\d+))?(?: skipStaticTick=(?<skipStaticTick>\d+))? input->render=(?<inputToRender>-?[0-9.]+)ms max=(?<inputToRenderMax>-?[0-9.]+)ms input->enqueue=(?<inputToEnqueue>-?[0-9.]+)ms max=(?<inputToEnqueueMax>-?[0-9.]+)ms/,
     );
     if (renderSummary) {
       render.push({
@@ -125,7 +125,7 @@ function parsePerfLog(text) {
 
     const inputBurst = safeRegex(
       line,
-      /\[EvenRoads\]\[Perf\]\[Input\] mapped=(?<mapped>\d+) dropRawScroll=(?<dropRaw>\d+) dropSameDirScroll=(?<dropDir>\d+) dropTap=(?<dropTap>\d+) dropDoubleTap=(?<dropDoubleTap>\d+)/,
+      /\[HoppyRoads\]\[Perf\]\[Input\] mapped=(?<mapped>\d+) dropRawScroll=(?<dropRaw>\d+) dropSameDirScroll=(?<dropDir>\d+) dropTap=(?<dropTap>\d+) dropDoubleTap=(?<dropDoubleTap>\d+)/,
     );
     if (inputBurst) {
       inputBursts.push({
@@ -140,7 +140,7 @@ function parsePerfLog(text) {
 
     const inputEvent = safeRegex(
       line,
-      /\[EvenRoads\]\[Perf\]\[input\].*input->render=(?<inputToRender>-?[0-9.]+)ms .*setup=(?<setup>[0-9.]+)ms enqueue=(?<enqueue>[0-9.]+)ms/,
+      /\[HoppyRoads\]\[Perf\]\[input\].*input->render=(?<inputToRender>-?[0-9.]+)ms .*setup=(?<setup>[0-9.]+)ms enqueue=(?<enqueue>[0-9.]+)ms/,
     );
     if (inputEvent) {
       inputEvents.push({

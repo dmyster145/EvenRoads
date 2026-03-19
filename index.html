@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>EvenRoads</title>
+    <title>HoppyRoads</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -509,7 +509,7 @@
     <div class="container">
       <header class="header">
         <div class="logo">
-          <span class="logo-text">EVEN<span class="dot">•</span>ROADS</span>
+          <span class="logo-text">HOPPY<span class="dot">•</span>ROADS</span>
         </div>
         <p class="subtitle">Road crossing for Even Realities G2</p>
       </header>
@@ -551,7 +551,7 @@
           <summary>Getting Started</summary>
           <div class="section-content">
             <h3>Welcome</h3>
-            <p>EvenRoads is a road crossing game for Even Realities G2. Move left or right, hop up, and cross traffic to reach the goal row.</p>
+            <p>HoppyRoads is a road crossing game for Even Realities G2. Move left or right, hop up, and cross traffic to reach the goal row.</p>
 
             <h3>Objective</h3>
             <p>Start on the bottom row and reach the top row without crashing. New games spawn at a random bottom-row column. After each successful crossing, you respawn on the bottom row in the same column.</p>
@@ -761,7 +761,7 @@
             <h3>What Is Saved</h3>
             <ul>
               <li>Only <strong>best score</strong> is persisted</li>
-              <li>It is stored in browser <code>localStorage</code> as <code>evenroads.bestScore</code></li>
+              <li>It is stored in browser <code>localStorage</code> as <code>hoppyroads.bestScore</code></li>
               <li>Use <strong>Reset Scores</strong> to clear current score and best score, then start a new game</li>
             </ul>
 
@@ -790,7 +790,7 @@
       </section>
 
       <footer class="footer">
-        <p>EvenRoads docs | Road crossing game for Even Realities G2</p>
+        <p>HoppyRoads docs | Road crossing game for Even Realities G2</p>
       </footer>
     </div>
 
@@ -807,7 +807,7 @@
 
     <script type="module" src="/src/main.ts"></script>
     <script>
-      const BEST_SCORE_STORAGE_KEY = 'evenroads.bestScore';
+      const BEST_SCORE_STORAGE_KEY = 'hoppyroads.bestScore';
 
       function setResetBestScoreMessage(text, tone) {
         const messageEl = document.getElementById('reset-best-score-message');
@@ -832,7 +832,7 @@
             if (window.localStorage) {
               window.localStorage.setItem(BEST_SCORE_STORAGE_KEY, '0');
             }
-            window.dispatchEvent(new CustomEvent('evenroads:reset-best-score'));
+            window.dispatchEvent(new CustomEvent('hoppyroads:reset-best-score'));
             setResetBestScoreMessage('Scores reset. New game started.', 'success');
           } catch {
             setResetBestScoreMessage('Could not reset scores on this device.', 'error');

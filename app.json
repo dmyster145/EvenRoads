@@ -1,7 +1,7 @@
 {
-  "name": "EvenRoads",
+  "name": "HoppyRoads",
   "version": "0.1.0",
   "description": "Crossy Roads/Frogger-style reaction prototype for Even Realities G2",
-  "author": "EvenRoads",
+  "author": "HoppyRoads",
   "entry": "index.html"
 }

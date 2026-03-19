@@ -88,7 +88,7 @@ export class RoadsBridge {
     const minSendMs = this.sendMinMs === Infinity ? 0 : this.sendMinMs;
     perfLogLazy(
       () =>
-        `[EvenRoads][Perf][Bridge] sends=${this.sendCount} avgSend=${avgSendMs.toFixed(1)}ms maxSend=${this.sendMaxMs.toFixed(1)}ms minSend=${minSendMs.toFixed(1)}ms ` +
+        `[HoppyRoads][Perf][Bridge] sends=${this.sendCount} avgSend=${avgSendMs.toFixed(1)}ms maxSend=${this.sendMaxMs.toFixed(1)}ms minSend=${minSendMs.toFixed(1)}ms ` +
         `avgQueue=${avgQueueMs.toFixed(1)}ms maxQueue=${this.queueDelayMaxMs.toFixed(1)}ms ` +
         `coalesced=${this.coalescedCount} skippedSame=${this.unchangedSkipCount} droppedLowPri=${this.droppedLowerPriorityCount} ` +
         `dropRecentInputTick=${this.droppedRecentInputTickCount} failed=${this.failedSendCount}`,
@@ -117,9 +117,9 @@ export class RoadsBridge {
     try {
       this.bridge = await waitForEvenAppBridge();
       const waitMs = perfNowMs() - startedAt;
-      console.log(`[EvenRoads][Bridge] ready in ${waitMs.toFixed(1)}ms`);
+      console.log(`[HoppyRoads][Bridge] ready in ${waitMs.toFixed(1)}ms`);
     } catch (err) {
-      console.warn("[EvenRoads][Bridge] init failed (preview mode)", err);
+      console.warn("[HoppyRoads][Bridge] init failed (preview mode)", err);
       this.bridge = null;
     }
   }
@@ -131,19 +131,22 @@ export class RoadsBridge {
       const result = await this.bridge.createStartUpPageContainer(page);
       const setupMs = perfNowMs() - setupStartedAt;
       if (result === 0 && this.perfEnabled) {
-        perfLogLazy(() => `[EvenRoads][Perf][Bridge] setupPage=${setupMs.toFixed(1)}ms`);
+        perfLogLazy(() => `[HoppyRoads][Perf][Bridge] setupPage=${setupMs.toFixed(1)}ms`);
       }
       if (result !== 0) {
-        console.warn(`[EvenRoads][Bridge] setupPage returned non-zero result=${result}`);
+        console.warn(`[HoppyRoads][Bridge] setupPage returned non-zero result=${result}`);
         try {
-          console.warn("[EvenRoads][Bridge] setupPage payload", CreateStartUpPageContainer.toJson(page));
+          console.warn(
+            "[HoppyRoads][Bridge] setupPage payload",
+            CreateStartUpPageContainer.toJson(page),
+          );
         } catch (jsonErr) {
-          console.warn("[EvenRoads][Bridge] setupPage payload serialization failed", jsonErr);
+          console.warn("[HoppyRoads][Bridge] setupPage payload serialization failed", jsonErr);
         }
       }
       return result === 0;
     } catch (err) {
-      console.error("[EvenRoads][Bridge] setup failed", err);
+      console.error("[HoppyRoads][Bridge] setup failed", err);
       return false;
     }
   }
@@ -216,7 +219,7 @@ export class RoadsBridge {
     } catch (err) {
       if (this.perfEnabled) this.failedSendCount += 1;
       this.maybeLogTransportStats(true);
-      console.error("[EvenRoads][Bridge] text update failed", err);
+      console.error("[HoppyRoads][Bridge] text update failed", err);
       return false;
     }
   }
@@ -287,7 +290,7 @@ export class RoadsBridge {
         handler(event);
       });
     } catch (err) {
-      console.error("[EvenRoads][Bridge] subscribe failed", err);
+      console.error("[HoppyRoads][Bridge] subscribe failed", err);
       this.unsubscribeEvents = null;
     }
   }
@@ -303,7 +306,7 @@ export class RoadsBridge {
       try {
         await this.bridge.shutDownPageContainer(0);
       } catch (err) {
-        console.error("[EvenRoads][Bridge] shutdown failed", err);
+        console.error("[HoppyRoads][Bridge] shutdown failed", err);
       }
     }
   }

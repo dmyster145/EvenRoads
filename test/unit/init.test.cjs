@@ -19,7 +19,7 @@ function createBrowserHarness(initialStorage = {}) {
   const status = { textContent: "" };
   const storageData = new Map(
     Object.entries({
-      "evenroads.displayProfile": "device",
+      "hoppyroads.displayProfile": "device",
       ...initialStorage,
     }),
   );
@@ -298,7 +298,7 @@ test("initApp retries failed page setup only after retry window", async () => {
 
 test("initApp reset event clears score/best and restarts at a new home column", async () => {
   await withPerfClock(async () => {
-    const browser = createBrowserHarness({ "evenroads.bestScore": "42" });
+    const browser = createBrowserHarness({ "hoppyroads.bestScore": "42" });
     const timerHarness = installTimerHarness();
     const originalWindow = global.window;
     const originalDocument = global.document;
@@ -318,12 +318,12 @@ test("initApp reset event clears score/best and restarts at a new home column", 
       const beforeResetX = playerXFromBottomRow(browser.app.textContent);
       assert.equal(beforeResetX >= 0, true, "expected player glyph before reset");
 
-      browser.window.dispatch("evenroads:reset-best-score", {});
+      browser.window.dispatch("hoppyroads:reset-best-score", {});
       await flushMicrotasks();
 
       assert.match(browser.status.textContent, /Score:\s*00/i);
       assert.match(browser.status.textContent, /Best:\s*00/i);
-      assert.equal(browser.window.localStorage.getItem("evenroads.bestScore"), "0");
+      assert.equal(browser.window.localStorage.getItem("hoppyroads.bestScore"), "0");
       const afterResetX = playerXFromBottomRow(browser.app.textContent);
       assert.equal(afterResetX >= 0, true, "expected player glyph after reset");
       assert.notEqual(afterResetX, beforeResetX, "expected new run to spawn at a different home column");
@@ -339,7 +339,7 @@ test("initApp reset event clears score/best and restarts at a new home column", 
 
 test("initApp simulator profile clamps right movement to visible board edge", async () => {
   await withPerfClock(async () => {
-    const browser = createBrowserHarness({ "evenroads.displayProfile": "simulator" });
+    const browser = createBrowserHarness({ "hoppyroads.displayProfile": "simulator" });
     const timerHarness = installTimerHarness();
     const originalWindow = global.window;
     const originalDocument = global.document;

@@ -68,9 +68,9 @@ export async function initApp(): Promise<void> {
   const statusRoot = document.getElementById("status");
   const bridge = new RoadsBridge();
 
-  console.log(`[EvenRoads] Display profile: ${glyphProfile}`);
+  console.log(`[HoppyRoads] Display profile: ${glyphProfile}`);
   if (glyphProfile === "simulator") {
-    console.log("[EvenRoads] Simulator glyph profile active");
+    console.log("[HoppyRoads] Simulator glyph profile active");
   }
 
   await bridge.init();
@@ -196,7 +196,7 @@ export async function initApp(): Promise<void> {
     const avgInputToRender = inputToRenderSamples > 0 ? inputToRenderTotalMs / inputToRenderSamples : -1;
     const avgInputToEnqueue = inputToEnqueueSamples > 0 ? inputToEnqueueTotalMs / inputToEnqueueSamples : -1;
     perfLog(
-      `[EvenRoads][Perf][Render] samples=${renderSampleCount} avgBuild=${avgBuild.toFixed(2)}ms maxBuild=${buildMaxMs.toFixed(2)}ms ` +
+      `[HoppyRoads][Perf][Render] samples=${renderSampleCount} avgBuild=${avgBuild.toFixed(2)}ms maxBuild=${buildMaxMs.toFixed(2)}ms ` +
         `avgPreview=${avgPreview.toFixed(2)}ms maxPreview=${previewMaxMs.toFixed(2)}ms ` +
         `avgSetup=${avgSetup.toFixed(2)}ms maxSetup=${setupMaxMs.toFixed(2)}ms ` +
         `avgEnqueue=${avgEnqueue.toFixed(2)}ms maxEnqueue=${enqueueMaxMs.toFixed(2)}ms ` +
@@ -257,7 +257,7 @@ export async function initApp(): Promise<void> {
         const errNow = perfNowMs();
         nextPageSetupRetryAtMs = errNow + PAGE_SETUP_RETRY_MS;
         if (errNow - lastPageErrorAtMs > 2000) {
-          console.warn("[EvenRoads] Failed to apply text page");
+          console.warn("[HoppyRoads] Failed to apply text page");
           lastPageErrorAtMs = errNow;
         }
         return;
@@ -266,14 +266,14 @@ export async function initApp(): Promise<void> {
       isPageInitialized = true;
       const setupMs = perfNowMs() - setupStartedAt;
       if (perfEnabled) {
-        perfLogLazy(() => `[EvenRoads][Perf][Setup] ready=${setupMs.toFixed(1)}ms`);
+        perfLogLazy(() => `[HoppyRoads][Perf][Setup] ready=${setupMs.toFixed(1)}ms`);
       }
-      console.log("[EvenRoads] Text page active");
+      console.log("[HoppyRoads] Text page active");
       // Kick an immediate render so the device gets the freshest state after delayed setup.
       scheduleRender("startup");
     })()
       .catch((err: unknown) => {
-        console.error("[EvenRoads] setup task failed", err);
+        console.error("[HoppyRoads] setup task failed", err);
       })
       .finally(() => {
         pageSetupInFlight = null;
@@ -368,7 +368,7 @@ export async function initApp(): Promise<void> {
                 if (lastQueuedDeviceText === queuedText) {
                   lastQueuedDeviceText = "";
                 }
-                console.error("[EvenRoads] bridge update enqueue failed", err);
+                console.error("[HoppyRoads] bridge update enqueue failed", err);
               });
             enqueueMs = perfNowMs() - enqueueStartedAt;
 
@@ -396,7 +396,7 @@ export async function initApp(): Promise<void> {
             if (primaryReason !== "tick") {
               perfLogLazy(
                 () =>
-                  `[EvenRoads][Perf][${primaryReason}] v=${targetVersion} input=${inputTrace.name}#${inputTrace.seq} ` +
+                  `[HoppyRoads][Perf][${primaryReason}] v=${targetVersion} input=${inputTrace.name}#${inputTrace.seq} ` +
                   `input->render=${fromInputMs.toFixed(1)}ms build=${buildMs.toFixed(2)}ms preview=${previewMs.toFixed(2)}ms ` +
                   `setup=${setupMs.toFixed(2)}ms enqueue=${enqueueMs.toFixed(2)}ms`,
               );
@@ -404,7 +404,7 @@ export async function initApp(): Promise<void> {
             maybeLogRenderStats();
           }
         } catch (err) {
-          console.error("[EvenRoads] render iteration failed", err);
+          console.error("[HoppyRoads] render iteration failed", err);
         }
 
         completedRenderVersion = targetVersion;
@@ -515,7 +515,7 @@ export async function initApp(): Promise<void> {
     }
   };
   window.addEventListener("keydown", keyHandler, { passive: false });
-  window.addEventListener("evenroads:reset-best-score", resetBestScoreHandler);
+  window.addEventListener("hoppyroads:reset-best-score", resetBestScoreHandler);
 
   scheduleRender("startup");
   scheduleTick();
@@ -529,7 +529,7 @@ export async function initApp(): Promise<void> {
     stopCrashBlink();
     maybeLogRenderStats(true);
     window.removeEventListener("keydown", keyHandler);
-    window.removeEventListener("evenroads:reset-best-score", resetBestScoreHandler);
+    window.removeEventListener("hoppyroads:reset-best-score", resetBestScoreHandler);
     void bridge.shutdown();
   });
 }

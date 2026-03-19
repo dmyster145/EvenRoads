@@ -1,8 +1,8 @@
-# EvenRoads
+# HoppyRoads
 
 Text-first Crossy Roads / Frogger-style game for **Even Realities G2** smart glasses.
 
-EvenRoads is designed around low-latency text container updates with deterministic gameplay and simulator-friendly preview behavior.
+HoppyRoads is designed around low-latency text container updates with deterministic gameplay and simulator-friendly preview behavior.
 
 ## Demo
 
@@ -13,7 +13,7 @@ EvenRoads is designed around low-latency text container updates with determinist
 
 | Alive | Crashed |
 |:-----:|:-------:|
-| ![EvenRoads alive state](assets/screenshot-alive.png) | ![EvenRoads crashed state](assets/screenshot-crashed.png) |
+| ![HoppyRoads alive state](assets/screenshot-alive.png) | ![HoppyRoads crashed state](assets/screenshot-crashed.png) |
 
 ## Quick links
 
@@ -32,7 +32,7 @@ EvenRoads is designed around low-latency text container updates with determinist
 ## Project structure
 
 ```text
-EvenRoads/
+HoppyRoads/
 ├── index.html                 # Entry page; docs/help UI + app mount roots
 ├── src/
 │   ├── main.ts                # App bootstrap
@@ -61,8 +61,8 @@ EvenRoads/
 
 1. **Clone and install**
    ```bash
-   git clone https://github.com/owner/EvenRoads.git
-   cd EvenRoads
+   git clone https://github.com/owner/HoppyRoads.git
+   cd HoppyRoads
    npm install
    ```
 2. **Run locally**
@@ -115,7 +115,7 @@ Output is in `dist/`. Deploy `dist/` to any static host, then open that URL in t
 
 ## Performance and responsiveness
 
-EvenRoads includes explicit transport-pressure handling and render scheduling strategies:
+HoppyRoads includes explicit transport-pressure handling and render scheduling strategies:
 
 - queued/coalesced text updates with priority-aware dropping
 - tick-frame suppression under recent input or transport backpressure

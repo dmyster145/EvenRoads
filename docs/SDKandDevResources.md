@@ -9,4 +9,5 @@ https://www.npmjs.com/package/@jappyjan/even-better-sdk
 Example projects:
 https://github.com/dmyster145/EvenChess
 https://github.com/dmyster145/EvenSolitaire
+https://github.com/dmyster145/HoppyRoads
 https://github.com/dmyster145/EvenSmartThings

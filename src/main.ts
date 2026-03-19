@@ -8,9 +8,9 @@ if (isPerfDomConsoleEnabled()) {
 }
 
 initApp().catch((err) => {
-  console.error("[EvenRoads] initialization failed", err);
+  console.error("[HoppyRoads] initialization failed", err);
   const root = document.getElementById("app");
   if (root) {
-    root.textContent = "EvenRoads - initialization failed. Check console.";
+    root.textContent = "HoppyRoads - initialization failed. Check console.";
   }
 });

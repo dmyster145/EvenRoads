@@ -1,4 +1,4 @@
-const BEST_SCORE_STORAGE_KEY = "evenroads.bestScore";
+const BEST_SCORE_STORAGE_KEY = "hoppyroads.bestScore";
 
 function getBrowserStorage(): Storage | null {
   if (typeof window === "undefined") return null;

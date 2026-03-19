@@ -1,6 +1,6 @@
 export type RenderGlyphProfile = "device" | "simulator";
 
-const DISPLAY_PROFILE_STORAGE_KEY = "evenroads.displayProfile";
+const DISPLAY_PROFILE_STORAGE_KEY = "hoppyroads.displayProfile";
 
 function normalizeProfile(raw: string | null | undefined): RenderGlyphProfile | null {
   if (!raw) return null;
