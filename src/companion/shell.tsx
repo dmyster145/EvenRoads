@@ -54,6 +54,7 @@ const NAV_ITEMS: { id: CompanionTab; label: string }[] = [
   { id: "controls", label: "Controls" },
   { id: "guide", label: "Guide" },
 ];
+const APP_ICON_SRC = "/hoppyroads-icon.png";
 
 function borderClassName(): string {
   return "border border-border";
@@ -127,7 +128,12 @@ function IntroCard({ snapshot }: { snapshot: CompanionSnapshot }): ReactElement 
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-3">
           <span className="flex h-10 w-10 items-center justify-center rounded-[6px] bg-accent-alpha text-text">
-            <IcMenuEvenHub width={20} height={20} />
+            <img
+              src={APP_ICON_SRC}
+              alt=""
+              className="h-6 w-6 object-contain"
+              style={{ imageRendering: "pixelated" }}
+            />
           </span>
           <div>
             <p className="text-[11px] tracking-[-0.11px] uppercase text-text-dim">Even Hub Companion</p>
