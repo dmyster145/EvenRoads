@@ -2,6 +2,7 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 
 const { OsEventTypeList } = require("@evenrealities/even_hub_sdk");
+const { LAUNCH_SOURCE_EVENT } = require("../../.test-dist/companion/contracts.js");
 const { setPerfNowProvider, resetPerfLogState } = require("../../.test-dist/perf/log.js");
 const { resetInputMapperStateForTests } = require("../../.test-dist/input/mapper.js");
 
@@ -17,6 +18,7 @@ function createBrowserHarness(initialStorage = {}) {
   const listeners = new Map();
   const app = { textContent: "" };
   const status = { textContent: "" };
+  const bodyAttributes = new Map();
   const storageData = new Map(
     Object.entries({
       "hoppyroads.displayProfile": "device",
@@ -52,8 +54,23 @@ function createBrowserHarness(initialStorage = {}) {
       }
     },
   };
+  window.dispatchEvent = (event) => {
+    if (!event?.type) return true;
+    window.dispatch(event.type, event);
+    return true;
+  };
+
+  const body = {
+    setAttribute(name, value) {
+      bodyAttributes.set(name, String(value));
+    },
+    getAttribute(name) {
+      return bodyAttributes.has(name) ? bodyAttributes.get(name) : null;
+    },
+  };
 
   const document = {
+    body,
     getElementById(id) {
       if (id === "app") return app;
       if (id === "status") return status;
@@ -61,7 +78,14 @@ function createBrowserHarness(initialStorage = {}) {
     },
   };
 
-  return { window, document, app, status, listeners };
+  return {
+    window,
+    document,
+    app,
+    status,
+    listeners,
+    body,
+  };
 }
 
 function playerXFromBottomRow(boardText) {
@@ -108,6 +132,7 @@ function makeFakeBridgeClass(config = {}) {
       this.updateTextCalls = [];
       this.shutdownCalls = 0;
       this.eventHandler = null;
+      this.launchSourceHandler = null;
       instances.push(this);
     }
 
@@ -135,8 +160,19 @@ function makeFakeBridgeClass(config = {}) {
       this.eventHandler = handler;
     }
 
+    subscribeLaunchSource(handler) {
+      this.launchSourceHandler = handler;
+      return () => {
+        if (this.launchSourceHandler === handler) this.launchSourceHandler = null;
+      };
+    }
+
     emit(event) {
       this.eventHandler?.(event);
+    }
+
+    emitLaunchSource(source) {
+      this.launchSourceHandler?.(source);
     }
 
     async shutdown() {
@@ -367,6 +403,76 @@ test("initApp simulator profile clamps right movement to visible board edge", as
       const playerX = playerXFromBottomRow(browser.app.textContent);
       assert.equal(playerX >= 0, true, "expected visible player glyph");
       assert.equal(playerX, bottomRow.length - 1, "expected player clamped at visible right edge");
+    } finally {
+      restore();
+      timerHarness.restore();
+      global.window = originalWindow;
+      global.document = originalDocument;
+    }
+  });
+});
+
+test("initApp surfaces app-menu launch source in the help shell", async () => {
+  await withPerfClock(async () => {
+    const browser = createBrowserHarness();
+    const launchEvents = [];
+    const timerHarness = installTimerHarness();
+    const originalWindow = global.window;
+    const originalDocument = global.document;
+    global.window = browser.window;
+    global.document = browser.document;
+
+    const FakeBridge = makeFakeBridgeClass();
+    const { initApp, restore } = loadInitWithBridgeClass(FakeBridge);
+
+    try {
+      browser.window.addEventListener(LAUNCH_SOURCE_EVENT, (event) => {
+        launchEvents.push(event.detail?.launchSource ?? null);
+      });
+      await initApp();
+      await flushMicrotasks();
+
+      const bridge = FakeBridge.instances[0];
+      bridge.emitLaunchSource("appMenu");
+      await flushMicrotasks();
+
+      assert.equal(browser.body.getAttribute("data-launch-source"), "appMenu");
+      assert.deepEqual(launchEvents, ["appMenu"]);
+    } finally {
+      restore();
+      timerHarness.restore();
+      global.window = originalWindow;
+      global.document = originalDocument;
+    }
+  });
+});
+
+test("initApp surfaces glasses-menu launch source in the help shell", async () => {
+  await withPerfClock(async () => {
+    const browser = createBrowserHarness();
+    const launchEvents = [];
+    const timerHarness = installTimerHarness();
+    const originalWindow = global.window;
+    const originalDocument = global.document;
+    global.window = browser.window;
+    global.document = browser.document;
+
+    const FakeBridge = makeFakeBridgeClass();
+    const { initApp, restore } = loadInitWithBridgeClass(FakeBridge);
+
+    try {
+      browser.window.addEventListener(LAUNCH_SOURCE_EVENT, (event) => {
+        launchEvents.push(event.detail?.launchSource ?? null);
+      });
+      await initApp();
+      await flushMicrotasks();
+
+      const bridge = FakeBridge.instances[0];
+      bridge.emitLaunchSource("glassesMenu");
+      await flushMicrotasks();
+
+      assert.equal(browser.body.getAttribute("data-launch-source"), "glassesMenu");
+      assert.deepEqual(launchEvents, ["glassesMenu"]);
     } finally {
       restore();
       timerHarness.restore();

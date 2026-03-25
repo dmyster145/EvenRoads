@@ -1,11 +1,12 @@
+import "./styles/app.css";
 import { initApp } from "./app/init";
+import { mountCompanionShell } from "./companion/shell";
 import { initDebugConsole } from "./debug/console";
-import { isPerfDomConsoleEnabled } from "./perf/log";
 
-// Capture startup logs before any async bridge/setup work begins.
-if (isPerfDomConsoleEnabled()) {
-  initDebugConsole();
-}
+// Let the console module decide whether the panel should be shown or hidden.
+initDebugConsole();
+
+mountCompanionShell();
 
 initApp().catch((err) => {
   console.error("[HoppyRoads] initialization failed", err);

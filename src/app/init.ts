@@ -24,6 +24,10 @@ import {
 } from "../perf/log";
 import { renderBrowserStatus, renderTextBoard, visibleBoardWidth } from "../render/text-board";
 import { resolveRenderGlyphProfile, type RenderGlyphProfile } from "../render/display-profile";
+import type { LaunchSource } from "@evenrealities/even_hub_sdk";
+import { LAUNCH_SOURCE_EVENT } from "../companion/contracts";
+import { createTickSource } from "./tick-source";
+import { advanceDueTicks } from "./tick-timeline";
 
 type RenderReason = "startup" | "input" | "tick";
 const RENDER_REASON_STARTUP = 1;
@@ -32,9 +36,13 @@ const RENDER_REASON_TICK = 1 << 2;
 const RENDER_STATS_LOG_EVERY_MS = 4000;
 const RENDER_STATS_LOG_MIN_SAMPLES = 24;
 const PAGE_SETUP_RETRY_MS = 1500;
-const TICK_AFTER_INPUT_BRIDGE_COOLDOWN_MS = 95;
 const CRASH_BLINK_INTERVAL_MS = 420;
 const NO_INPUT_TRACE = { seq: 0, atMs: 0, name: "-" };
+function broadcastLaunchSource(source: LaunchSource): void {
+  document.body?.setAttribute("data-launch-source", source);
+  if (typeof window.dispatchEvent !== "function" || typeof CustomEvent !== "function") return;
+  window.dispatchEvent(new CustomEvent(LAUNCH_SOURCE_EVENT, { detail: { launchSource: source } }));
+}
 
 function reasonToMask(reason: RenderReason): number {
   if (reason === "startup") return RENDER_REASON_STARTUP;
@@ -74,6 +82,10 @@ export async function initApp(): Promise<void> {
   }
 
   await bridge.init();
+  bridge.subscribeLaunchSource((source) => {
+    console.log(`[HoppyRoads] Launch source: ${source}`);
+    broadcastLaunchSource(source);
+  });
 
   const persistedBestScore = loadPersistedBestScore();
   let state: GameState = clampPlayerXToVisibleWidth(createInitialState(), glyphProfile);
@@ -81,10 +93,10 @@ export async function initApp(): Promise<void> {
     state = { ...state, bestScore: persistedBestScore };
   }
   let lastPersistedBestScore = state.bestScore;
-  let tickTimer: ReturnType<typeof setTimeout> | null = null;
   let crashBlinkTimer: ReturnType<typeof setInterval> | null = null;
   let crashBlinkVisible = true;
   let destroyed = false;
+  let nextTickDueAtMs = 0;
 
   let requestedRenderVersion = 0;
   let completedRenderVersion = 0;
@@ -98,6 +110,9 @@ export async function initApp(): Promise<void> {
   let lastPreviewBoardText = "";
   let lastPreviewStatusText = "";
   let lastQueuedDeviceText = "";
+  const tickSource = createTickSource(() => {
+    drainTicksAndSchedule();
+  });
 
   let renderSampleCount = 0;
   let buildTotalMs = 0;
@@ -110,8 +125,6 @@ export async function initApp(): Promise<void> {
   let enqueueMaxMs = 0;
   let skippedPreviewWrites = 0;
   let skippedBridgeWrites = 0;
-  let skippedBusyTickWrites = 0;
-  let skippedInputCooldownTickWrites = 0;
   let skippedStaticTickRenders = 0;
   let inputToRenderSamples = 0;
   let inputToRenderTotalMs = 0;
@@ -119,7 +132,6 @@ export async function initApp(): Promise<void> {
   let inputToEnqueueSamples = 0;
   let inputToEnqueueTotalMs = 0;
   let inputToEnqueueMaxMs = 0;
-  let lastInputAppliedAtMs = 0;
   let lastRenderStatsLogAtMs = perfNowMs();
   const resetBestScoreHandler: EventListener = () => {
     if (destroyed) return;
@@ -133,7 +145,7 @@ export async function initApp(): Promise<void> {
     syncCrashBlink();
     persistBestScore(0);
     scheduleRender("input");
-    scheduleTick();
+    scheduleTick(true);
   };
 
   function stopCrashBlink(): void {
@@ -201,7 +213,6 @@ export async function initApp(): Promise<void> {
         `avgSetup=${avgSetup.toFixed(2)}ms maxSetup=${setupMaxMs.toFixed(2)}ms ` +
         `avgEnqueue=${avgEnqueue.toFixed(2)}ms maxEnqueue=${enqueueMaxMs.toFixed(2)}ms ` +
         `skipPreview=${skippedPreviewWrites} skipBridge=${skippedBridgeWrites} ` +
-        `skipBusyTick=${skippedBusyTickWrites} skipInputCooldownTick=${skippedInputCooldownTickWrites} ` +
         `skipStaticTick=${skippedStaticTickRenders} ` +
         `input->render=${avgInputToRender.toFixed(1)}ms max=${inputToRenderMaxMs.toFixed(1)}ms ` +
         `input->enqueue=${avgInputToEnqueue.toFixed(1)}ms max=${inputToEnqueueMaxMs.toFixed(1)}ms`,
@@ -218,8 +229,6 @@ export async function initApp(): Promise<void> {
     enqueueMaxMs = 0;
     skippedPreviewWrites = 0;
     skippedBridgeWrites = 0;
-    skippedBusyTickWrites = 0;
-    skippedInputCooldownTickWrites = 0;
     skippedStaticTickRenders = 0;
     inputToRenderSamples = 0;
     inputToRenderTotalMs = 0;
@@ -243,6 +252,52 @@ export async function initApp(): Promise<void> {
       changed = true;
     }
     return changed;
+  }
+
+  function didTickChangeVisibleState(beforeState: GameState, nextState: GameState): boolean {
+    if (beforeState.runState !== nextState.runState) return true;
+    if (beforeState.playerX !== nextState.playerX || beforeState.playerY !== nextState.playerY) return true;
+    if (beforeState.score !== nextState.score || beforeState.bestScore !== nextState.bestScore) return true;
+    if (beforeState.level !== nextState.level || beforeState.message !== nextState.message) return true;
+    for (let i = 0; i < beforeState.lanes.length; i++) {
+      if (beforeState.lanes[i] !== nextState.lanes[i]) return true;
+    }
+    return false;
+  }
+
+  function advanceDueGameTicks(nowMs: number): { advancedCount: number; didVisualChange: boolean } {
+    let didVisualChange = false;
+    let skippedStaticTicks = 0;
+    const result = advanceDueTicks({
+      state,
+      nowMs,
+      nextDueAtMs: nextTickDueAtMs,
+      canAdvance: (currentState) => currentState.runState === "alive",
+      getIntervalMs: (currentState) => currentState.tickIntervalMs,
+      advance: (currentState) => {
+        const nextTickState = clampPlayerXToVisibleWidth(advanceTick(currentState), glyphProfile);
+        if (didTickChangeVisibleState(currentState, nextTickState)) {
+          didVisualChange = true;
+        } else {
+          skippedStaticTicks += 1;
+        }
+        return nextTickState;
+      },
+    });
+
+    state = result.state;
+    nextTickDueAtMs = result.nextDueAtMs;
+    if (result.advancedCount > 0) {
+      if (skippedStaticTicks > 0) {
+        skippedStaticTickRenders += skippedStaticTicks;
+      }
+      syncCrashBlink();
+      syncBestScorePersistence(state);
+    }
+    return {
+      advancedCount: result.advancedCount,
+      didVisualChange,
+    };
   }
 
   function startPageSetupIfNeeded(textContent: string): void {
@@ -340,20 +395,7 @@ export async function initApp(): Promise<void> {
           let enqueueMs = 0;
           const priority: TextUpdatePriority =
             primaryReason === "input" ? "input" : primaryReason === "tick" ? "tick" : "default";
-          const shouldDropTickFrameForBackpressure = primaryReason === "tick" && bridge.isTransportBusy();
-          const shouldDropTickFrameForInputCooldown =
-            primaryReason === "tick" &&
-            lastInputAppliedAtMs > 0 &&
-            renderStartedAt - lastInputAppliedAtMs < TICK_AFTER_INPUT_BRIDGE_COOLDOWN_MS;
-
-          if (shouldDropTickFrameForBackpressure || shouldDropTickFrameForInputCooldown) {
-            skippedBridgeWrites += 1;
-            if (shouldDropTickFrameForBackpressure) {
-              skippedBusyTickWrites += 1;
-            } else {
-              skippedInputCooldownTickWrites += 1;
-            }
-          } else if (deviceText !== lastQueuedDeviceText) {
+          if (deviceText !== lastQueuedDeviceText) {
             lastQueuedDeviceText = deviceText;
             const enqueueStartedAt = perfNowMs();
             const queuedText = deviceText;
@@ -420,11 +462,46 @@ export async function initApp(): Promise<void> {
     void runRenderLoop();
   }
 
+  function scheduleTick(resetPhase = false): void {
+    tickSource.cancel();
+    if (destroyed || state.runState !== "alive") {
+      nextTickDueAtMs = 0;
+      return;
+    }
+
+    const now = perfNowMs();
+    if (resetPhase || nextTickDueAtMs <= 0) {
+      nextTickDueAtMs = now + state.tickIntervalMs;
+    }
+    tickSource.schedule(Math.max(0, nextTickDueAtMs - now));
+  }
+
+  function drainTicksAndSchedule(): void {
+    if (destroyed) return;
+    const { advancedCount, didVisualChange } = advanceDueGameTicks(perfNowMs());
+    if (advancedCount > 0) {
+      if (didVisualChange) {
+        scheduleRender("tick");
+      } else {
+        maybeLogRenderStats();
+      }
+    }
+    scheduleTick(false);
+  }
+
   function applyAction(action: InputAction): void {
+    const { advancedCount, didVisualChange } = advanceDueGameTicks(perfNowMs());
+    if (advancedCount > 0) {
+      if (didVisualChange) {
+        scheduleRender("tick");
+      } else {
+        maybeLogRenderStats();
+      }
+    }
+
     const prevRunState = state.runState;
     const prevTickMs = state.tickIntervalMs;
     const input = recordInput(action);
-    lastInputAppliedAtMs = input.atMs;
     state = applyInput(state, action, input.atMs, {
       maxPlayerX: maxPlayableX(state, glyphProfile),
     });
@@ -434,47 +511,7 @@ export async function initApp(): Promise<void> {
 
     const runStateChanged = prevRunState !== state.runState;
     const tickChanged = prevTickMs !== state.tickIntervalMs;
-    if (runStateChanged || tickChanged) {
-      scheduleTick();
-    }
-  }
-
-  function scheduleTick(): void {
-    if (tickTimer) {
-      clearTimeout(tickTimer);
-      tickTimer = null;
-    }
-    if (destroyed || state.runState !== "alive") return;
-
-    // Use setTimeout instead of setInterval so long frames do not queue multiple stale ticks.
-    tickTimer = setTimeout(() => {
-      if (destroyed) return;
-      if (state.runState !== "alive") return;
-
-      const beforeTickState = state;
-      const nextTickState = advanceTick(beforeTickState);
-      state = clampPlayerXToVisibleWidth(nextTickState, glyphProfile);
-      syncCrashBlink();
-      syncBestScorePersistence(state);
-
-      let didVisualChange = beforeTickState.runState !== nextTickState.runState;
-      if (!didVisualChange) {
-        for (let i = 0; i < beforeTickState.lanes.length; i++) {
-          if (beforeTickState.lanes[i] !== nextTickState.lanes[i]) {
-            didVisualChange = true;
-            break;
-          }
-        }
-      }
-
-      if (didVisualChange) {
-        scheduleRender("tick");
-      } else {
-        skippedStaticTickRenders += 1;
-        maybeLogRenderStats();
-      }
-      scheduleTick();
-    }, state.tickIntervalMs);
+    scheduleTick(runStateChanged || tickChanged || advancedCount > 0);
   }
 
   syncCrashBlink();
@@ -516,20 +553,26 @@ export async function initApp(): Promise<void> {
   };
   window.addEventListener("keydown", keyHandler, { passive: false });
   window.addEventListener("hoppyroads:reset-best-score", resetBestScoreHandler);
+  const visibilityHandler = () => {
+    drainTicksAndSchedule();
+  };
+  if (typeof document.addEventListener === "function") {
+    document.addEventListener("visibilitychange", visibilityHandler);
+  }
 
   scheduleRender("startup");
-  scheduleTick();
+  scheduleTick(true);
 
   window.addEventListener("beforeunload", () => {
     destroyed = true;
-    if (tickTimer) {
-      clearTimeout(tickTimer);
-      tickTimer = null;
-    }
+    tickSource.destroy();
     stopCrashBlink();
     maybeLogRenderStats(true);
     window.removeEventListener("keydown", keyHandler);
     window.removeEventListener("hoppyroads:reset-best-score", resetBestScoreHandler);
+    if (typeof document.removeEventListener === "function") {
+      document.removeEventListener("visibilitychange", visibilityHandler);
+    }
     void bridge.shutdown();
   });
 }

@@ -1,0 +1,235 @@
+@import "tailwindcss";
+@source "../../index.html";
+@source "../**/*.{ts,tsx}";
+@source "../../node_modules/even-toolkit/dist/**/*.js";
+@source "../../node_modules/even-toolkit/dist/**/*.mjs";
+@import "even-toolkit/web/theme-light.css";
+@import "even-toolkit/web/typography.css";
+@import "even-toolkit/web/utilities.css";
+
+@layer utilities {
+  .bg-bg {
+    background-color: var(--color-bg);
+  }
+
+  .bg-surface {
+    background-color: var(--color-surface);
+  }
+
+  .bg-surface-light {
+    background-color: var(--color-surface-light);
+  }
+
+  .bg-surface-lighter {
+    background-color: var(--color-surface-lighter);
+  }
+
+  .bg-accent {
+    background-color: var(--color-accent);
+  }
+
+  .bg-accent-alpha {
+    background-color: var(--color-accent-alpha);
+  }
+
+  .bg-accent-warning {
+    background-color: var(--color-accent-warning);
+  }
+
+  .bg-positive {
+    background-color: var(--color-positive);
+  }
+
+  .bg-positive-alpha {
+    background-color: var(--color-positive-alpha);
+  }
+
+  .bg-negative {
+    background-color: var(--color-negative);
+  }
+
+  .bg-negative-alpha {
+    background-color: var(--color-negative-alpha);
+  }
+
+  .bg-input-bg {
+    background-color: var(--color-input-bg);
+  }
+
+  .bg-overlay {
+    background-color: var(--color-overlay);
+  }
+
+  .bg-text {
+    background-color: var(--color-text);
+  }
+
+  .bg-border {
+    background-color: var(--color-border);
+  }
+
+  .text-text {
+    color: var(--color-text);
+  }
+
+  .text-text-dim {
+    color: var(--color-text-dim);
+  }
+
+  .text-text-highlight {
+    color: var(--color-text-highlight);
+  }
+
+  .text-accent {
+    color: var(--color-accent);
+  }
+
+  .text-positive {
+    color: var(--color-positive);
+  }
+
+  .text-negative {
+    color: var(--color-negative);
+  }
+
+  .text-surface {
+    color: var(--color-surface);
+  }
+
+  .border-border {
+    border-color: var(--color-border);
+  }
+
+  .border-border-light {
+    border-color: var(--color-border-light);
+  }
+
+  .border-accent {
+    border-color: var(--color-accent);
+  }
+
+  .border-negative {
+    border-color: var(--color-negative);
+  }
+
+  .border-surface {
+    border-color: var(--color-surface);
+  }
+}
+
+:root {
+  color: var(--color-text);
+  background: var(--color-bg);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-body);
+  font-size: 15px;
+  font-weight: 300;
+  letter-spacing: -0.15px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+a {
+  color: inherit;
+}
+
+#app,
+#status {
+  display: none;
+}
+
+#companion-root {
+  min-height: 100dvh;
+}
+
+#perf-console-panel {
+  position: fixed;
+  right: 12px;
+  bottom: 12px;
+  width: min(92vw, 420px);
+  max-height: 42vh;
+  display: none;
+  flex-direction: column;
+  background: rgba(13, 14, 18, 0.92);
+  color: #f6f6f6;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.28);
+  backdrop-filter: blur(14px);
+  overflow: hidden;
+  z-index: 9999;
+}
+
+#perf-console-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+#perf-console-title {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  margin-right: auto;
+}
+
+#perf-console-header button {
+  border: 0;
+  background: rgba(255, 255, 255, 0.08);
+  color: inherit;
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+#perf-console-header button:hover {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+#perf-console-output {
+  margin: 0;
+  padding: 12px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 1.45;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  min-height: 90px;
+  max-height: calc(42vh - 42px);
+}
+
+#perf-console-panel[data-collapsed="true"] #perf-console-output {
+  display: none;
+}
+
+#perf-console-panel[data-collapsed="true"] {
+  max-height: none;
+  width: auto;
+}

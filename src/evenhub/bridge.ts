@@ -14,10 +14,12 @@ import {
   CreateStartUpPageContainer,
   type EvenAppBridge,
   type EvenHubEvent,
+  type LaunchSource,
 } from "@evenrealities/even_hub_sdk";
 import { isPerfLoggingEnabled, perfLogLazy, perfNowMs } from "../perf/log";
 
 export type EvenHubEventHandler = (event: EvenHubEvent) => void;
+export type LaunchSourceHandler = (source: LaunchSource) => void;
 export type TextUpdatePriority = "tick" | "default" | "input";
 const BRIDGE_STATS_LOG_EVERY_MS = 4000;
 const BRIDGE_STATS_LOG_MIN_SENDS = 24;
@@ -45,6 +47,9 @@ export class RoadsBridge {
   private readonly perfEnabled = isPerfLoggingEnabled();
   private bridge: EvenAppBridge | null = null;
   private unsubscribeEvents: (() => void) | null = null;
+  private unsubscribeLaunchSource: (() => void) | null = null;
+  private launchSource: LaunchSource | null = null;
+  private readonly launchSourceHandlers = new Set<LaunchSourceHandler>();
   private isSendingText = false;
   private senderTask: Promise<void> | null = null;
   private queuedText: QueuedTextUpdate | null = null;
@@ -116,6 +121,17 @@ export class RoadsBridge {
     const startedAt = perfNowMs();
     try {
       this.bridge = await waitForEvenAppBridge();
+      try {
+        this.unsubscribeLaunchSource = this.bridge.onLaunchSource((source) => {
+          this.launchSource = source;
+          for (const handler of this.launchSourceHandlers) {
+            handler(source);
+          }
+        });
+      } catch (err) {
+        console.warn("[HoppyRoads][Bridge] launch source subscribe failed", err);
+        this.unsubscribeLaunchSource = null;
+      }
       const waitMs = perfNowMs() - startedAt;
       console.log(`[HoppyRoads][Bridge] ready in ${waitMs.toFixed(1)}ms`);
     } catch (err) {
@@ -295,9 +311,22 @@ export class RoadsBridge {
     }
   }
 
+  subscribeLaunchSource(handler: LaunchSourceHandler): () => void {
+    this.launchSourceHandlers.add(handler);
+    if (this.launchSource) {
+      handler(this.launchSource);
+    }
+    return () => {
+      this.launchSourceHandlers.delete(handler);
+    };
+  }
+
   async shutdown(): Promise<void> {
     this.unsubscribeEvents?.();
     this.unsubscribeEvents = null;
+    this.unsubscribeLaunchSource?.();
+    this.unsubscribeLaunchSource = null;
+    this.launchSourceHandlers.clear();
     this.queuedText = null;
     this.senderTask = null;
     this.maybeLogTransportStats(true);

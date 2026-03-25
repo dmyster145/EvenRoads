@@ -138,5 +138,8 @@ export function renderTextBoard(state: GameState, options?: RenderTextOptions): 
 }
 
 export function renderBrowserStatus(state: GameState, options?: RenderTextOptions): string {
-  return renderScoreboardLine(state, options);
+  return renderScoreboardLine(state, {
+    ...options,
+    showCrashedState: true,
+  });
 }

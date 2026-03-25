@@ -18,12 +18,25 @@
     "perf:baseline": "node scripts/perf/analyze-log.cjs docs/perf/baseline-2026-03-01.log --json docs/perf/baseline-summary.json",
     "perf:compare": "node scripts/perf/compare-summaries.cjs"
   },
-  "dependencies": {
-    "@evenrealities/even_hub_sdk": "^0.0.7"
-  },
   "devDependencies": {
-    "@evenrealities/evenhub-cli": "^0.1.5",
+    "@evenrealities/evenhub-cli": "^0.1.10",
+    "@evenrealities/evenhub-simulator": "^0.6.2",
+    "@tailwindcss/vite": "^4.2.2",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^5.1.4",
+    "tailwindcss": "^4.2.2",
     "typescript": "^5.6.3",
     "vite": "^6.4.1"
+  },
+  "dependencies": {
+    "@evenrealities/even_hub_sdk": "^0.0.9",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "even-toolkit": "^1.1.2",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "react-router": "^7.13.2",
+    "tailwind-merge": "^3.5.0"
   }
 }

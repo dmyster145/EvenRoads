@@ -36,28 +36,28 @@ function textEvent(eventType) {
 
 test("scroll events map to horizontal moves", () => {
   withFakeClock((clock) => {
-    assert.equal(mapEvenHubEventToInput(textEvent(OsEventTypeList.SCROLL_TOP_EVENT)), "move_left");
-    clock.advance(2);
-    assert.equal(mapEvenHubEventToInput(textEvent(OsEventTypeList.SCROLL_BOTTOM_EVENT)), "move_right");
+    assert.equal(mapEvenHubEventToInput(textEvent(OsEventTypeList.SCROLL_TOP_EVENT)), "move_right");
+    clock.advance(12);
+    assert.equal(mapEvenHubEventToInput(textEvent(OsEventTypeList.SCROLL_BOTTOM_EVENT)), "move_left");
   });
 });
 
-test("raw scroll debounce drops duplicate callbacks inside 1ms", () => {
+test("raw scroll debounce drops duplicate callbacks inside 12ms", () => {
   withFakeClock((clock) => {
     const evt = textEvent(OsEventTypeList.SCROLL_TOP_EVENT);
-    assert.equal(mapEvenHubEventToInput(evt), "move_left");
+    assert.equal(mapEvenHubEventToInput(evt), "move_right");
     assert.equal(mapEvenHubEventToInput(evt), null);
-    clock.advance(1.1);
-    assert.equal(mapEvenHubEventToInput(evt), "move_left");
+    clock.advance(12.1);
+    assert.equal(mapEvenHubEventToInput(evt), "move_right");
   });
 });
 
-test("scroll dedupe accepts event exactly at 1ms threshold", () => {
+test("scroll dedupe accepts event exactly at 12ms threshold", () => {
   withFakeClock((clock) => {
     const evt = textEvent(OsEventTypeList.SCROLL_TOP_EVENT);
-    assert.equal(mapEvenHubEventToInput(evt), "move_left");
-    clock.advance(1);
-    assert.equal(mapEvenHubEventToInput(evt), "move_left");
+    assert.equal(mapEvenHubEventToInput(evt), "move_right");
+    clock.advance(12);
+    assert.equal(mapEvenHubEventToInput(evt), "move_right");
   });
 });
 

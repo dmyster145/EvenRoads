@@ -40,7 +40,7 @@ test("status render emits single-line scoreboard", () => {
   assert.doesNotMatch(status, /Crossed!\s*Level/i);
 });
 
-test("crashed state label can be hidden for blink-off frame", () => {
+test("browser status keeps crashed state visible during blink-off frame", () => {
   const state = {
     ...createInitialState(31),
     runState: "crashed!",
@@ -48,7 +48,18 @@ test("crashed state label can be hidden for blink-off frame", () => {
   const shown = renderBrowserStatus(state);
   const hidden = renderBrowserStatus(state, { showCrashedState: false });
   assert.match(shown, /State:\s*CRASHED!/i);
-  assert.doesNotMatch(hidden, /CRASHED!/i);
+  assert.match(hidden, /State:\s*CRASHED!/i);
+});
+
+test("board render can hide crashed state label for blink-off frame", () => {
+  const state = {
+    ...createInitialState(33),
+    runState: "crashed!",
+  };
+  const shown = renderTextBoard(state);
+  const hidden = renderTextBoard(state, { showCrashedState: false });
+  assert.match(shown.split("\n")[0], /State:\s*CRASHED!/i);
+  assert.doesNotMatch(hidden.split("\n")[0], /CRASHED!/i);
 });
 
 test("crossed message appears in status line only when crossed", () => {

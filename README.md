@@ -77,8 +77,8 @@ HoppyRoads/
 
 ## Usage on the glasses
 
-- **Scroll up** → move left
-- **Scroll down** → move right
+- **Scroll up** → move right
+- **Scroll down** → move left
 - **Tap** → move up
 - **Tap while crashed** → restart
 
