@@ -1,6 +1,6 @@
 {
   "name": "hoppy-roads",
-  "version": "0.1.0",
+  "version": "1.0.4",
   "private": true,
   "type": "module",
   "engines": {
@@ -30,7 +30,7 @@
     "vite": "^6.4.1"
   },
   "dependencies": {
-    "@evenrealities/even_hub_sdk": "^0.0.9",
+    "@evenrealities/even_hub_sdk": "^0.0.10",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "even-toolkit": "^1.1.2",

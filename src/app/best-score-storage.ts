@@ -1,3 +1,5 @@
+import type { RoadsBridge } from "../evenhub/bridge";
+
 export const BEST_SCORE_STORAGE_KEY = "hoppyroads.bestScore";
 
 function getBrowserStorage(): Storage | null {
@@ -33,4 +35,14 @@ export function persistBestScore(bestScore: number, storage: Storage | null = ge
   } catch {
     // Ignore storage write failures so gameplay can continue in restricted runtimes.
   }
+}
+
+export async function loadBestScoreFromBridge(bridge: RoadsBridge): Promise<number> {
+  const raw = await bridge.readLocalStorage(BEST_SCORE_STORAGE_KEY);
+  if (!raw) return 0;
+  return normalizeScore(Number(raw));
+}
+
+export function persistBestScoreToBridge(bestScore: number, bridge: RoadsBridge): void {
+  void bridge.writeLocalStorage(BEST_SCORE_STORAGE_KEY, String(normalizeScore(bestScore)));
 }

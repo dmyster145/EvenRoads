@@ -321,6 +321,37 @@ export class RoadsBridge {
     };
   }
 
+  async readLocalStorage(key: string): Promise<string | null> {
+    if (this.bridge) {
+      try {
+        return await this.bridge.getLocalStorage(key);
+      } catch {
+        return null;
+      }
+    }
+    try {
+      return window.localStorage?.getItem(key) ?? null;
+    } catch {
+      return null;
+    }
+  }
+
+  async writeLocalStorage(key: string, value: string): Promise<void> {
+    if (this.bridge) {
+      try {
+        await this.bridge.setLocalStorage(key, value);
+      } catch {
+        // ignore
+      }
+      return;
+    }
+    try {
+      window.localStorage?.setItem(key, value);
+    } catch {
+      // ignore
+    }
+  }
+
   async shutdown(): Promise<void> {
     this.unsubscribeEvents?.();
     this.unsubscribeEvents = null;

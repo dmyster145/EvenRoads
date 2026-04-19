@@ -5,7 +5,7 @@
  * transport bottlenecks observable in one place.
  */
 import { RoadsBridge, type TextUpdatePriority } from "../evenhub/bridge";
-import { loadPersistedBestScore, persistBestScore } from "./best-score-storage";
+import { loadBestScoreFromBridge, persistBestScoreToBridge } from "./best-score-storage";
 import {
   CONTAINER_ID_TEXT,
   CONTAINER_NAME_TEXT,
@@ -87,7 +87,7 @@ export async function initApp(): Promise<void> {
     broadcastLaunchSource(source);
   });
 
-  const persistedBestScore = loadPersistedBestScore();
+  const persistedBestScore = await loadBestScoreFromBridge(bridge);
   let state: GameState = clampPlayerXToVisibleWidth(createInitialState(), glyphProfile);
   if (persistedBestScore > state.bestScore) {
     state = { ...state, bestScore: persistedBestScore };
@@ -143,7 +143,7 @@ export async function initApp(): Promise<void> {
       message: "New game.",
     };
     syncCrashBlink();
-    persistBestScore(0);
+    persistBestScoreToBridge(0, bridge);
     scheduleRender("input");
     scheduleTick(true);
   };
@@ -181,7 +181,7 @@ export async function initApp(): Promise<void> {
 
   function syncBestScorePersistence(nextState: GameState): void {
     if (nextState.bestScore <= lastPersistedBestScore) return;
-    persistBestScore(nextState.bestScore);
+    persistBestScoreToBridge(nextState.bestScore, bridge);
     lastPersistedBestScore = nextState.bestScore;
   }
 
