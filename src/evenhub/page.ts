@@ -3,9 +3,14 @@
  *
  * The page shape is static after startup: one hidden event-capture container and one
  * visible screen container. A fixed layout avoids costly rebuilds during gameplay.
+ *
+ * `composeStartupPage` is used once at app start via `createStartUpPageContainer`.
+ * `composeRebuildPage` is used after a disconnect+reconnect via `rebuildPageContainer`
+ * (the SDK requires `createStartUp` is one-shot per session).
  */
 import {
   CreateStartUpPageContainer,
+  RebuildPageContainer,
   TextContainerProperty,
 } from "@evenrealities/even_hub_sdk";
 
@@ -50,10 +55,14 @@ function createTextScreenContainer(content: string): TextContainerProperty {
 }
 
 export function composeStartupPage(initialText: string): CreateStartUpPageContainer {
-  // Keep input capture decoupled from visible board text. This prevents long content
-  // from interfering with swipe/tap delivery on device firmware paths that couple
-  // interaction with scrollable text containers.
   return new CreateStartUpPageContainer({
+    containerTotalNum: 2,
+    textObject: [createEventCaptureContainer(), createTextScreenContainer(initialText)],
+  });
+}
+
+export function composeRebuildPage(initialText: string): RebuildPageContainer {
+  return new RebuildPageContainer({
     containerTotalNum: 2,
     textObject: [createEventCaptureContainer(), createTextScreenContainer(initialText)],
   });

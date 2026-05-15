@@ -18,8 +18,11 @@ import { isPerfLoggingEnabled, perfLogLazy, perfNowMs } from "../perf/log";
 // a single swipe burst on-device. Roughly one frame still feels immediate in play.
 const RAW_SCROLL_DEBOUNCE_MS = 12;
 const SAME_DIR_SCROLL_DEDUPE_MS = 12;
-// Taps are more prone to accidental repeats from firmware and user finger bounce.
-const TAP_DEDUPE_MS = 1;
+// Firmware emits duplicate CLICK events ~50-100ms apart for one physical tap
+// (same root cause as the double-tap duplicates). A single forward hop was
+// landing as two, jumping the frog two rows into traffic. 130ms collapses the
+// duplicate while still allowing ~7 intentional forward hops/sec.
+const TAP_DEDUPE_MS = 130;
 const DOUBLE_TAP_DEDUPE_MS = 20;
 const INPUT_PERF_LOG_EVERY_MS = 4000;
 const INPUT_PERF_LOG_MIN_DROPS = 16;
@@ -182,9 +185,13 @@ export function mapEvenHubEventToInput(event: EvenHubEvent): InputAction | null 
 }
 
 /**
- * Deterministic reset hook for tests and stress harnesses.
+ * Reset the mapper's debounce/dedupe state.
+ *
+ * Called on `FOREGROUND_ENTER` so stale debounce windows don't suppress the
+ * first inputs after a resume. Also exported as `resetInputMapperStateForTests`
+ * for backward compatibility with the existing test harness.
  */
-export function resetInputMapperStateForTests(): void {
+export function resetInputMapperState(): void {
   lastRawScrollAt = 0;
   lastAcceptedScrollAt = 0;
   lastAcceptedScrollDir = null;
@@ -197,3 +204,6 @@ export function resetInputMapperStateForTests(): void {
   mappedCount = 0;
   lastInputPerfLogAtMs = perfNowMs();
 }
+
+/** @deprecated use `resetInputMapperState` */
+export const resetInputMapperStateForTests = resetInputMapperState;

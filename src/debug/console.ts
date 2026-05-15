@@ -47,16 +47,19 @@ function getPanel(): HTMLElement | null {
 
 function getOutput(): HTMLPreElement | null {
   const el = document.getElementById("perf-console-output");
+  if (typeof HTMLPreElement === "undefined") return null;
   return el instanceof HTMLPreElement ? el : null;
 }
 
 function getButton(id: string): HTMLButtonElement | null {
   const el = document.getElementById(id);
+  if (typeof HTMLButtonElement === "undefined") return null;
   return el instanceof HTMLButtonElement ? el : null;
 }
 
 function flushOutput(): void {
   flushScheduled = false;
+  if (typeof document === "undefined") return;
   const output = getOutput();
   if (!output) return;
 

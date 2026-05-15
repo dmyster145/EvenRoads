@@ -94,12 +94,26 @@ test("tap and double-tap dedupe accept events at exact thresholds", () => {
     const doubleTap = textEvent(OsEventTypeList.DOUBLE_CLICK_EVENT);
 
     assert.equal(mapEvenHubEventToInput(tap), "move_up");
-    clock.advance(1);
+    clock.advance(130);
     assert.equal(mapEvenHubEventToInput(tap), "move_up");
 
     clock.advance(100);
     assert.equal(mapEvenHubEventToInput(doubleTap), "restart");
     clock.advance(20);
     assert.equal(mapEvenHubEventToInput(doubleTap), "restart");
+  });
+});
+
+test("duplicate firmware tap within 130ms is dropped (no double forward hop)", () => {
+  withFakeClock((clock) => {
+    const tap = textEvent(OsEventTypeList.CLICK_EVENT);
+
+    assert.equal(mapEvenHubEventToInput(tap), "move_up");
+    // Firmware duplicate ~70ms later — must NOT produce a second move_up.
+    clock.advance(70);
+    assert.equal(mapEvenHubEventToInput(tap), null);
+    // A genuine second tap past the window is still accepted.
+    clock.advance(130);
+    assert.equal(mapEvenHubEventToInput(tap), "move_up");
   });
 });

@@ -7,7 +7,7 @@ function loadDebugConsoleModule() {
   return require(modulePath);
 }
 
-test("initDebugConsole hides the panel when DOM perf logging is disabled", () => {
+test("initDebugConsole panel visibility matches DOM perf logging flag", () => {
   const panelAttributes = new Map();
   const panel = {
     style: {},
@@ -29,11 +29,19 @@ test("initDebugConsole hides the panel when DOM perf logging is disabled", () =>
   };
 
   try {
+    const { isPerfDomConsoleEnabled } = require("../../.test-dist/perf/log.js");
     const { initDebugConsole } = loadDebugConsoleModule();
     initDebugConsole();
 
-    assert.equal(panel.style.display, "none");
-    assert.equal(panel.getAttribute("data-collapsed"), "true");
+    if (isPerfDomConsoleEnabled()) {
+      // Debug build: panel is shown and expanded.
+      assert.equal(panel.style.display, "flex");
+      assert.equal(panel.getAttribute("data-collapsed"), "false");
+    } else {
+      // Default build: panel is hidden.
+      assert.equal(panel.style.display, "none");
+      assert.equal(panel.getAttribute("data-collapsed"), "true");
+    }
   } finally {
     global.window = originalWindow;
     global.document = originalDocument;
