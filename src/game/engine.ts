@@ -275,6 +275,15 @@ function isBridgeCell(state: GameState, x: number, y: number): boolean {
   return state.bridgeCells[y]?.[x] ?? false;
 }
 
+// The goal row renders an alternating pattern (see laneGlyph): even columns
+// are ▩ solid blockers, odd columns are the open crossing cells. That pattern
+// is render-defined only — solidCells stays interior-only by design (rows 0
+// and height-1 are always empty), so entry into a ▩ goal cell must be
+// rejected explicitly, otherwise hopping onto one still counts as a crossing.
+function isGoalBlockerCell(state: GameState, x: number, y: number): boolean {
+  return state.lanes[y]?.type === "goal" && x % 2 === 0;
+}
+
 function withMessage(state: GameState, message: string): GameState {
   return { ...state, message };
 }
@@ -469,7 +478,7 @@ export function applyInput(
     }
     y = targetY;
   }
-  if (isSolidCell(normalizedState, x, y)) {
+  if (isSolidCell(normalizedState, x, y) || isGoalBlockerCell(normalizedState, x, y)) {
     x = normalizedState.playerX;
     y = normalizedState.playerY;
   }

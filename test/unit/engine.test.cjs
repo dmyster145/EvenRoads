@@ -156,6 +156,32 @@ test("reaching goal increments score and level then resets player", () => {
   assert.equal(next.playerX, crossingX);
 });
 
+test("hopping into a solid (▩) cell on the goal row does not cross", () => {
+  const state = createInitialState(4);
+  // Keep the player's standing row clear so a blocked hop reverting in place
+  // can't be misread as a road collision.
+  const lanes = state.lanes.slice();
+  lanes[1] = { ...lanes[1], type: "road", cells: new Array(state.width).fill(false) };
+  const base = { ...state, lanes, playerY: 1 };
+
+  // Even columns on the goal row render as ▩ (see laneGlyph); entering one
+  // must be blocked, not counted as a crossing.
+  const blockerX = 6;
+  const blocked = applyInput({ ...base, playerX: blockerX }, "move_up", 12);
+  assert.equal(blocked.score, state.score);
+  assert.equal(blocked.level, state.level);
+  assert.equal(blocked.playerY, 1);
+  assert.equal(blocked.playerX, blockerX);
+  assert.doesNotMatch(blocked.message, /Crossed! Level/);
+
+  // Odd columns are the open crossing cells — still works.
+  const openX = 7;
+  const crossed = applyInput({ ...base, playerX: openX }, "move_up", 13);
+  assert.equal(crossed.score, state.score + 1);
+  assert.equal(crossed.level, state.level + 1);
+  assert.match(crossed.message, /Crossed! Level \d+\.?/);
+});
+
 test("crossed message stays on home row and clears after leaving home row", () => {
   const state = createInitialState(41);
   const crossingX = 9;

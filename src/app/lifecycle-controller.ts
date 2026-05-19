@@ -8,7 +8,8 @@
  *  - FOREGROUND_ENTER / reconnect → reset mapper, rebuildPage (or setupPage if first
  *    boot), then runtime.resume()
  *  - ABNORMAL_EXIT / SYSTEM_EXIT → terminal cleanup (no auto-reconnect)
- *  - Double-tap during alive/paused → requestExit (system dialog). Crashed → restart.
+ *  - Double-tap while alive: on the home row → requestExit (system dialog);
+ *    off the home row (in traffic) → two hops. Crashed/paused → restart.
  *
  * Page setup retry policy (8 attempts, exponential backoff):
  *  - 500, 1000, 2000, 4000, 4000, 4000, 4000, 4000 ms between attempts
@@ -43,6 +44,15 @@ const DOUBLE_TAP_ACTION_DEDUPE_MS = 600;
 // While an exit request is pending we must not pause on FOREGROUND_EXIT.
 // Safety cap so a stuck flag can't suppress a later genuine background pause.
 const EXIT_DIALOG_MAX_MS = 20_000;
+// A `degraded` signal (3 consecutive transport timeouts) pauses the runtime to
+// shed BLE load. The only other clear/resume path is a connection-state
+// transition, and onDeviceStatusChanged fires only on transitions — a link
+// that is slow but still nominally "connected" never transitions, so without
+// this the game would stay paused forever (the freeze that worsens with
+// level). After each degrade we self-recover on a capped backoff: clear
+// degraded and resume; if the link is still bad the next timeouts re-degrade
+// and we back off further.
+const DEGRADED_RECOVERY_BACKOFFS_MS = [3000, 6000, 12000, 20000];
 
 type BridgeStateAttr = "idle" | "connecting" | "ready" | "degraded" | "disconnected" | "failed";
 
@@ -73,12 +83,21 @@ export function createLifecycleController(
   let exitInFlight = false;
   let exitDialogPending = false;
   let exitDialogTimer: ReturnType<typeof setTimeout> | null = null;
+  let degradedRecoveryTimer: ReturnType<typeof setTimeout> | null = null;
+  let degradedRecoveryAttempts = 0;
 
   function clearExitDialogPending(): void {
     exitDialogPending = false;
     if (exitDialogTimer !== null) {
       clearTimeout(exitDialogTimer);
       exitDialogTimer = null;
+    }
+  }
+
+  function clearDegradedRecoveryTimer(): void {
+    if (degradedRecoveryTimer !== null) {
+      clearTimeout(degradedRecoveryTimer);
+      degradedRecoveryTimer = null;
     }
   }
 
@@ -161,6 +180,8 @@ export function createLifecycleController(
         degradedActive = false;
         bridge.transport.resetDegraded();
       }
+      clearDegradedRecoveryTimer();
+      degradedRecoveryAttempts = 0;
       resetSetupRetryBudget();
       setBridgeStateAttr("connecting");
       runtime.resetPageSetup();
@@ -179,6 +200,7 @@ export function createLifecycleController(
       bridge.transport.discardInFlight();
       bridge.transport.dropQueue();
       clearSetupRetryTimer();
+      clearDegradedRecoveryTimer();
       runtime.resetPageSetup();
       runtime.pause();
       return;
@@ -209,12 +231,19 @@ export function createLifecycleController(
           return;
         }
         bridge.transport.discardInFlight();
+        clearDegradedRecoveryTimer();
         runtime.pause();
         bridge.transport.flushStats();
         return;
       }
       case "foregroundEnter": {
         resetInputMapperState();
+        if (degradedActive) {
+          degradedActive = false;
+          bridge.transport.resetDegraded();
+        }
+        clearDegradedRecoveryTimer();
+        degradedRecoveryAttempts = 0;
         if (!pageEverSetUp) {
           // First time foregrounding without an existing page — kick a setup.
           if (!setupInFlight && setupRetryTimer === null) {
@@ -271,10 +300,25 @@ export function createLifecycleController(
         return;
       }
       lastDoubleTapActionAtMs = now;
-      const runState = runtime.getGameState().runState;
-      console.log(`[HoppyRoads][Controller] double-tap accepted runState=${runState}`);
+      const gameState = runtime.getGameState();
+      const runState = gameState.runState;
+      const onHomeRow = gameState.playerY === gameState.height - 1;
+      console.log(
+        `[HoppyRoads][Controller] double-tap accepted runState=${runState} onHomeRow=${onHomeRow}`,
+      );
       if (runState === "alive") {
-        void requestExit();
+        if (onHomeRow) {
+          void requestExit();
+        } else {
+          // Off the home row (in traffic): a double-tap acts as two hops (one
+          // per tap) rather than opening the exit dialog. Applied directly (not
+          // via the mapper) so the mapper's separate, shorter dedupe window
+          // can't drop them — the 600ms window above already collapses firmware
+          // duplicates of the one physical double-tap.
+          console.log("[HoppyRoads][Controller] double-tap → 2 hops (not on home row)");
+          runtime.applyAction("move_up");
+          runtime.applyAction("move_up");
+        }
       } else {
         // crashed/paused → restart. Apply directly rather than via the mapper
         // so the mapper's separate (shorter) dedupe window can't drop it.
@@ -287,6 +331,34 @@ export function createLifecycleController(
     runtime.applyAction(action);
   }
 
+  function scheduleDegradedRecovery(): void {
+    if (terminal) return;
+    clearDegradedRecoveryTimer();
+    const idx = Math.min(degradedRecoveryAttempts, DEGRADED_RECOVERY_BACKOFFS_MS.length - 1);
+    const delay = DEGRADED_RECOVERY_BACKOFFS_MS[idx];
+    degradedRecoveryAttempts += 1;
+    console.log(
+      `[HoppyRoads][Controller] degraded recovery scheduled in ${delay}ms (attempt ${degradedRecoveryAttempts})`,
+    );
+    degradedRecoveryTimer = setTimeout(() => {
+      degradedRecoveryTimer = null;
+      attemptDegradedRecovery();
+    }, delay);
+  }
+
+  function attemptDegradedRecovery(): void {
+    if (terminal || !degradedActive) return;
+    console.log("[HoppyRoads][Controller] attempting degraded recovery — clearing degraded, resuming");
+    degradedActive = false;
+    bridge.transport.resetDegraded();
+    setBridgeStateAttr("ready");
+    // The page container is still valid (no disconnect — just a slow link), so
+    // resume directly rather than forcing a rebuild that would pile more load
+    // onto an already-strained link. If sends still time out, the transport
+    // re-emits `degraded` and handleDegraded backs off further.
+    if (runtime.isPaused()) runtime.resume();
+  }
+
   function handleDegraded(): void {
     if (terminal || degradedActive) return;
     degradedActive = true;
@@ -297,6 +369,7 @@ export function createLifecycleController(
     bridge.transport.discardInFlight();
     bridge.transport.dropQueue();
     runtime.pause();
+    scheduleDegradedRecovery();
   }
 
   async function requestExit(): Promise<void> {
@@ -333,6 +406,7 @@ export function createLifecycleController(
     terminal = true;
     clearSetupRetryTimer();
     clearExitDialogPending();
+    clearDegradedRecoveryTimer();
     unsubscribeTransportDegraded?.();
     unsubscribeTransportDegraded = null;
     runtime.pause();

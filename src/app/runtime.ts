@@ -121,6 +121,8 @@ export function createRuntime(options: RuntimeOptions): Runtime {
 
   let state: GameState = clampPlayerXToVisibleWidth(createInitialState(), glyphProfile);
   let lastPersistedBestScore = state.bestScore;
+  let lastLoggedLevel = state.level;
+  let lastLoggedRunState: GameState["runState"] = state.runState;
   let crashBlinkTimer: ReturnType<typeof setInterval> | null = null;
   let crashBlinkVisible = true;
   let runState: RuntimeRunState = "stopped";
@@ -193,6 +195,29 @@ export function createRuntime(options: RuntimeOptions): Runtime {
     if (nextState.bestScore <= lastPersistedBestScore) return;
     persistBestScoreToBridge(nextState.bestScore, bridge);
     lastPersistedBestScore = nextState.bestScore;
+  }
+
+  // Game-state markers so a captured log can correlate a transport `degraded`
+  // with the level/score it happened at. Idempotent (logs only on change), so
+  // it's safe to call from both the tick and input paths.
+  function logGameStateTransition(): void {
+    if (!perfEnabled) return;
+    if (state.level !== lastLoggedLevel) {
+      const prevLevel = lastLoggedLevel;
+      lastLoggedLevel = state.level;
+      perfLogLazy(
+        () =>
+          `[HoppyRoads][Game] level ${prevLevel}->${state.level} score=${state.score} tickMs=${state.tickIntervalMs} runState=${state.runState}`,
+      );
+    }
+    if (state.runState !== lastLoggedRunState) {
+      const prevRun = lastLoggedRunState;
+      lastLoggedRunState = state.runState;
+      perfLogLazy(
+        () =>
+          `[HoppyRoads][Game] runState ${prevRun}->${state.runState} level=${state.level} score=${state.score}`,
+      );
+    }
   }
 
   function maybeLogRenderStats(force = false): void {
@@ -291,6 +316,7 @@ export function createRuntime(options: RuntimeOptions): Runtime {
       }
       syncCrashBlink();
       syncBestScorePersistence(state);
+      logGameStateTransition();
     }
     return {
       advancedCount: result.advancedCount,
@@ -467,6 +493,7 @@ export function createRuntime(options: RuntimeOptions): Runtime {
     });
     syncCrashBlink();
     syncBestScorePersistence(state);
+    logGameStateTransition();
     scheduleRender("input");
 
     const runStateChanged = prevRunState !== state.runState;

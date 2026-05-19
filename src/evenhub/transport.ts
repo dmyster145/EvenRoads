@@ -29,6 +29,13 @@ const PRIORITY_DEFAULT = 1;
 const PRIORITY_INPUT = 2;
 
 const INPUT_GUARD_TICK_DROP_MS = 85;
+// Ceiling on how often tick-priority frames are admitted to the send queue.
+// The simulation tick rate accelerates with level (down to ~90ms), but BLE
+// cannot push a full-board text payload that fast; uncapped, the link
+// saturates at higher levels and trips the degraded path (the freeze that
+// worsens with score). Input/default priority is never throttled, so input
+// latency is unaffected — only the device frame rate is bounded.
+const MIN_TICK_SEND_INTERVAL_MS = 150;
 const BRIDGE_STATS_LOG_EVERY_MS = 4000;
 const BRIDGE_STATS_LOG_MIN_SENDS = 24;
 const CONSECUTIVE_TIMEOUTS_FOR_DEGRADED = 3;
@@ -107,6 +114,7 @@ export class Transport {
   private degradedSignaled = false;
   private readonly degradedListeners = new Set<DegradedListener>();
   private lastInputEnqueueAtMs = 0;
+  private lastTickSendAtMs = 0;
 
   private sendCount = 0;
   private sendTotalMs = 0;
@@ -314,6 +322,21 @@ export class Transport {
       if (this.perfEnabled) this.droppedRecentInputTickCount += 1;
       this.maybeLogTransportStats();
       return true;
+    }
+
+    if (
+      priority === "tick" &&
+      this.lastTickSendAtMs > 0 &&
+      now - this.lastTickSendAtMs < MIN_TICK_SEND_INTERVAL_MS
+    ) {
+      // Frame-rate cap: the sim ticks faster than BLE can transmit at higher
+      // levels. Drop the intermediate tick frame — local state already moved
+      // on; the next admitted frame reflects it.
+      this.maybeLogTransportStats();
+      return true;
+    }
+    if (priority === "tick") {
+      this.lastTickSendAtMs = now;
     }
 
     if (this.queuedText) {
