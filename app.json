@@ -2,9 +2,9 @@
   "package_id": "com.harmon.hoppyroads",
   "edition": "202601",
   "name": "HoppyRoads",
-  "version": "1.0.12",
+  "version": "1.0.13",
   "min_app_version": "2.0.0",
-  "min_sdk_version": "0.0.10",
+  "min_sdk_version": "0.0.12",
   "entrypoint": "index.html",
   "permissions": [
     {
